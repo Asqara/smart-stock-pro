@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  --font-display: var(--font-urbanist), system-ui, sans-serif;
+
+  --color-terracotta-50: #faf0eb;
+  --color-terracotta-100: #f3d9cd;
+  --color-terracotta-200: #e7b39c;
+  --color-terracotta-300: #db8d6b;
+  --color-terracotta-400: #cf6f4d;
+  --color-terracotta-500: #c15f3c;
+  --color-terracotta-600: #a14d30;
+  --color-terracotta-700: #7d3b25;
+  --color-terracotta-800: #58291a;
+  --color-terracotta-900: #34170f;
+
+  --color-stone-50: #f5f4f2;
+  --color-stone-100: #e8e6e2;
+  --color-stone-200: #d1cdc6;
+  --color-stone-300: #b2ada4;
+  --color-stone-400: #948e83;
+  --color-stone-500: #777166;
+  --color-stone-600: #5c574e;
+  --color-stone-700: #423e37;
+  --color-stone-800: #2a2722;
+  --color-stone-900: #16140f;
+
+  --color-cream-50: #faf7ec;
+  --color-cream-100: #f0ead6;
+  --color-cream-200: #e2d8b8;
+  --color-cream-300: #d0c08c;
+
+  --color-ink: #000000;
+  --color-paper: #ffffff;
+
+  --color-brand: var(--color-terracotta-500);
+  --color-brand-hover: var(--color-terracotta-600);
+  --color-surface: var(--color-paper);
+  --color-surface-muted: var(--color-cream-100);
+  --color-fg: var(--color-ink);
+  --color-fg-muted: var(--color-stone-500);
+  --color-border: var(--color-stone-200);
+  --color-danger: #b3261e;
+  --color-success: #2e7d32;
+}
+
+@utility ts-xs {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+@utility ts-sm {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+@utility ts-base {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+@utility ts-lg {
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+@utility ts-xl {
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+@utility ts-2xl {
+  font-family: var(--font-sans);
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+@utility ts-3xl {
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+@utility ts-4xl {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+}
+@utility ts-5xl {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  line-height: 1;
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background: var(--color-surface);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+  }
+}
