@@ -1,31 +1,26 @@
-import { Admin } from "./admin";
-import { ApiKey } from "./api-key";
+import { AuditLogs } from "./audit-logs";
 import { Auth } from "./auth";
-import { Merchant } from "./merchant";
-import { Order } from "./order";
-import { Payment } from "./payment";
-import { Product } from "./product";
-import { Transaction } from "./transaction";
-import { Upload } from "./upload";
-import { Webhook } from "./webhook";
+import { EmailNotifications } from "./email";
+import { ErrorLogs } from "./error-logs";
+import { Inventory } from "./inventory";
+import { Jobs } from "./jobs/enqueue";
+import { Monitoring } from "./monitoring";
+import { Notifications } from "./notifications";
+import { Users } from "./users";
 
 /**
  * Business logic SDK entry point.
  *
- * @example
- *   import { Client } from "@/client";
- *   await Client.Auth.login({ email, password });
- *   await Client.Merchant.list();
+ * Domain modules should be exposed as static class references from here.
  */
 export class Client {
-  static Admin = Admin;
-  static ApiKey = ApiKey;
+  static AuditLogs = AuditLogs;
   static Auth = Auth;
-  static Merchant = Merchant;
-  static Order = Order;
-  static Payment = Payment;
-  static Product = Product;
-  static Transaction = Transaction;
-  static Upload = Upload;
-  static Webhook = Webhook;
+  static EmailNotifications = EmailNotifications;
+  static ErrorLogs = ErrorLogs;
+  static Inventory = Inventory;
+  static Jobs = Jobs;
+  static Monitoring = Monitoring;
+  static Notifications = Notifications;
+  static Users = Users;
 }

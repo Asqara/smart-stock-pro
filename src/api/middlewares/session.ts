@@ -1,38 +1,57 @@
-import "server-only";
-
-import { Elysia } from "elysia";
-
-import { validateSession } from "@/lib/auth";
-import { COOKIES } from "@/constants/cookies";
-import { UnauthorizedError } from "@/lib/errors";
+import type { Permission } from "@/constants/auth";
+import { Client } from "@/client";
+import type { AuthSession } from "@/client/types";
+import { getRequestContext, type RequestContext } from "@/lib/request";
 
 /**
- * Resolves the current session from the request cookie.
- * Attaches `session` and `user` to context, or `null` if absent/invalid.
+ * Authenticated API context.
  */
-export const sessionMiddleware = new Elysia().resolve(
-  { as: "scoped" },
-  async ({ request, cookie: { [COOKIES.session]: token } }) => {
-    if (!token.cookie.value) return { session: null, user: null };
-
-    const result = await validateSession(token.cookie.value as string);
-    if (!result) return { session: null, user: null };
-
-    return { session: result.session, user: result.user };
-  },
-);
+export type ApiAuthContext = {
+  requestContext: RequestContext;
+  session: AuthSession;
+};
 
 /**
- * Variant that throws `UnauthorizedError` when no valid session is present.
+ * Require an active session from a request.
  */
-export const requireSessionMiddleware = new Elysia().resolve(
-  { as: "scoped" },
-  async ({ request, cookie: { [COOKIES.session]: token } }) => {
-    if (!token.cookie.value) throw new UnauthorizedError();
+export async function requireSession(request: Request): Promise<ApiAuthContext> {
+  return {
+    requestContext: getRequestContext(request),
+    session: await Client.Auth.authenticateRequest(request),
+  };
+}
 
-    const result = await validateSession(token.cookie.value as string);
-    if (!result) throw new UnauthorizedError();
+/**
+ * Require session, CSRF token, and permission for a mutating request.
+ */
+export async function requireMutationPermission(
+  request: Request,
+  permission: Permission,
+): Promise<ApiAuthContext> {
+  const authContext = await requireSession(request);
 
-    return { session: result.session, user: result.user };
-  },
-);
+  Client.Auth.verifyCsrf(request, authContext.session);
+  await Client.Auth.requirePermission(authContext.session, permission, {
+    ...authContext.requestContext,
+    actorUserId: authContext.session.user.id,
+  });
+
+  return authContext;
+}
+
+/**
+ * Require session and permission for a read request.
+ */
+export async function requireReadPermission(
+  request: Request,
+  permission: Permission,
+): Promise<ApiAuthContext> {
+  const authContext = await requireSession(request);
+
+  await Client.Auth.requirePermission(authContext.session, permission, {
+    ...authContext.requestContext,
+    actorUserId: authContext.session.user.id,
+  });
+
+  return authContext;
+}

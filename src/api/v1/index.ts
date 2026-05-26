@@ -1,32 +1,23 @@
-import "server-only";
-
 import { Elysia } from "elysia";
 
-import { adminApi } from "./admin";
-import { apiKeysController } from "./api-keys";
+import { auditLogsController } from "./audit-logs";
 import { authController } from "./auth";
-import { merchantsController } from "./merchants";
-import { ordersController } from "./orders";
-import { paymentsController } from "./payments";
+import { categoriesController } from "./categories";
 import { productsController } from "./products";
-import { publicOrdersController } from "./public-orders";
-import { transactionsController } from "./transactions";
-import { uploadsController } from "./uploads";
-import { webhooksController } from "./webhooks";
+import { stockController } from "./stock";
+import { suppliersController } from "./suppliers";
+import { usersController } from "./users";
+import { warehousesController } from "./warehouses";
 
 /**
- * Public versioned API. Mount controllers here as they get built.
+ * Versioned public API controller.
  */
-export const v1Api = new Elysia({ prefix: "/v1" })
-  .get("/ping", () => ({ ok: true }))
-  .use(apiKeysController)
+export const v1Controller = new Elysia()
   .use(authController)
-  .use(merchantsController)
+  .use(usersController)
+  .use(auditLogsController)
+  .use(categoriesController)
   .use(productsController)
-  .use(paymentsController)
-  .use(publicOrdersController)
-  .use(ordersController)
-  .use(transactionsController)
-  .use(uploadsController)
-  .use(webhooksController)
-  .use(adminApi);
+  .use(stockController)
+  .use(suppliersController)
+  .use(warehousesController);

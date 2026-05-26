@@ -3,8 +3,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider as JotaiProvider } from "jotai";
 import { HelmetProvider } from "react-helmet-async";
-import { Toaster } from "sonner";
 import { useState } from "react";
+
+import { AppToaster } from "@/components/ui/app-toaster";
 
 type ProvidersProps = {
   children: React.ReactNode;
@@ -31,7 +32,7 @@ export function Providers({ children }: ProvidersProps) {
       <QueryClientProvider client={queryClient}>
         <JotaiProvider>
           {children}
-          <Toaster position="bottom-right" richColors />
+          <AppToaster />
         </JotaiProvider>
       </QueryClientProvider>
     </HelmetProvider>

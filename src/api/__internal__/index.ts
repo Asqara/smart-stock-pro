@@ -1,18 +1,23 @@
-import "server-only";
-
 import { Elysia } from "elysia";
 
-import { dokuWebhookController } from "./webhooks/doku";
-import { duitkuWebhookController } from "./webhooks/duitku";
-import { midtransWebhookController } from "./webhooks/midtrans";
-import { xenditWebhookController } from "./webhooks/xendit";
+import { Client } from "@/client";
 
 /**
- * Internal API. Not version-gated, not published in client docs.
+ * Internal API controller for app health checks and shared utilities.
  */
-export const internalApi = new Elysia({ prefix: "/__internal__" })
-  .get("/health", () => ({ ok: true, ts: new Date().toISOString() }))
-  .use(midtransWebhookController)
-  .use(xenditWebhookController)
-  .use(duitkuWebhookController)
-  .use(dokuWebhookController);
+export const internalController = new Elysia({ prefix: "/__internal__" })
+  .get("/health", () => ({
+    ok: true,
+    service: "SmartStock Pro API",
+  }))
+  .get("/users/template", async () => {
+    const buffer = await Client.Users.generateXlsxTemplate();
+
+    return new Response(new Uint8Array(buffer), {
+      headers: {
+        "Content-Disposition": 'attachment; filename="user-template.xlsx"',
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      },
+    });
+  });

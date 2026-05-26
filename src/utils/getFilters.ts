@@ -11,7 +11,15 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
-const RESERVED = new Set(["page", "limit", "sortBy", "sortDir", "search"]);
+const RESERVED = new Set([
+  "page",
+  "limit",
+  "sortBy",
+  "sort_by",
+  "sortDir",
+  "sort_order",
+  "search",
+]);
 
 /**
  * Parse `searchParams` into a normalized list-query filter object.
@@ -20,8 +28,9 @@ const RESERVED = new Set(["page", "limit", "sortBy", "sortDir", "search"]);
 export function getFilters(searchParams: Record<string, unknown>): Filters {
   const page = Math.max(DEFAULT_PAGE, toInt(searchParams.page, DEFAULT_PAGE));
   const limit = Math.min(MAX_LIMIT, Math.max(1, toInt(searchParams.limit, DEFAULT_LIMIT)));
-  const sortBy = toStr(searchParams.sortBy);
-  const sortDirRaw = toStr(searchParams.sortDir);
+  const sortBy = toStr(searchParams.sortBy) ?? toStr(searchParams.sort_by);
+  const sortDirRaw =
+    toStr(searchParams.sortDir) ?? toStr(searchParams.sort_order);
   const sortDir = sortDirRaw === "asc" || sortDirRaw === "desc" ? sortDirRaw : undefined;
   const search = toStr(searchParams.search);
 

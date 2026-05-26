@@ -1,6 +1,3 @@
-Boleh. Ini versi **DESIGN.md untuk SmartStock Pro**. Aku arahkan ke gaya **dashboard monitoring profesional**, bukan landing page atau marketplace. Ini cocok untuk sistem inventaris, gudang, transfer stok, alert, Redis queue, worker, laporan, audit log, dan server monitoring.
-
-````md id="w0nq4x"
 # DESIGN.md
 
 Design system for SmartStock Pro. Read this before any UI work.
@@ -820,6 +817,18 @@ Input height: 40px
 Textarea min height: 96px
 Select height: 40px
 ```
+
+### Custom form controls
+
+Use reusable controls from @src/components/ui/field.tsx for dashboard forms.
+
+Rules:
+
+* Use `SelectInput` for role, status, warehouse, category, supplier, and other option lists.
+* Use `DateInput` for date filters and date fields.
+* Do not rely on browser-default select styling in primary dashboard forms.
+* Keep field popovers inside the viewport.
+* Keep mobile tap targets at least 44px high.
 
 ### Form Copy
 

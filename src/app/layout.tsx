@@ -1,9 +1,9 @@
 import "./globals.css";
 
-import { Plus_Jakarta_Sans, Urbanist } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 
 import { Providers } from "./providers";
-import { APP_NAME, APP_URL } from "@/constants/app";
+import { APP_META_DESCRIPTION, APP_NAME, APP_URL } from "@/constants/app";
 import { mc } from "@/utils/mc";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -12,15 +12,9 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-const urbanist = Urbanist({
-  subsets: ["latin"],
-  variable: "--font-urbanist",
-  display: "swap",
-});
-
 export const metadata = {
   title: APP_NAME,
-  description: "Aplikasi manajemen stok untuk bisnis Anda",
+  description: APP_META_DESCRIPTION,
   metadataBase: new URL(APP_URL),
   icons: {
     icon: "/favicon.png",
@@ -34,7 +28,7 @@ type RootLayoutProps = {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="id" className={mc(plusJakartaSans.variable, urbanist.variable)}>
+    <html lang="id" className={mc(plusJakartaSans.variable)}>
       <body>
         <Providers>{children}</Providers>
       </body>

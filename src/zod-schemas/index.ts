@@ -1,35 +1,16 @@
-import { Admin } from "./admin";
-import { ApiKey } from "./api-key";
+import { Alerts } from "./alerts";
+import { AuditLogs } from "./audit-logs";
 import { Auth } from "./auth";
-import { Merchant } from "./merchant";
-import { Order } from "./order";
-import { Payment } from "./payment";
-import { Product } from "./product";
-import { Upload } from "./upload";
-import { Webhook } from "./webhook";
+import { Inventory } from "./inventory";
+import { Users } from "./users";
 
 /**
- * Validation schemas grouped by domain. Sub-domain schemas attach as
- * `static` references on this class.
+ * Validation schema entry point.
  */
 export class Schema {
-  static Admin = Admin;
-  static ApiKey = ApiKey;
+  static Alerts = Alerts;
+  static AuditLogs = AuditLogs;
   static Auth = Auth;
-  static Merchant = Merchant;
-  static Order = Order;
-  static Payment = Payment;
-  static Product = Product;
-  static Upload = Upload;
-  static Webhook = Webhook;
+  static Inventory = Inventory;
+  static Users = Users;
 }
-
-export * from "./admin";
-export * from "./api-key";
-export * from "./auth";
-export * from "./merchant";
-export * from "./order";
-export * from "./payment";
-export * from "./product";
-export * from "./upload";
-export * from "./webhook";
