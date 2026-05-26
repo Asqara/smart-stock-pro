@@ -7,26 +7,41 @@ import * as schema from "@/drizzle-schema";
 
 import { ConfigurationError } from "./errors";
 
-const DATABASE_URL = process.env.DATABASE_URL;
-const DATABASE_URL_READ = process.env.DATABASE_URL_READ ?? DATABASE_URL;
+type Db = ReturnType<typeof drizzle<typeof schema>>;
 
-if (!DATABASE_URL) {
-  throw new ConfigurationError("DATABASE_URL belum diatur.");
+let _db: Db | undefined;
+let _dbRead: Db | undefined;
+
+function getDb(): Db {
+  if (_db) return _db;
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new ConfigurationError("DATABASE_URL belum diatur.");
+  _db = drizzle(postgres(url, { prepare: false }), { schema });
+  return _db;
 }
 
-if (!DATABASE_URL_READ) {
-  throw new ConfigurationError("DATABASE_URL_READ belum diatur.");
+function getDbRead(): Db {
+  if (_dbRead) return _dbRead;
+  const url = process.env.DATABASE_URL_READ ?? process.env.DATABASE_URL;
+  if (!url) throw new ConfigurationError("DATABASE_URL_READ belum diatur.");
+  _dbRead = drizzle(postgres(url, { prepare: false }), { schema });
+  return _dbRead;
 }
-
-const writeClient = postgres(DATABASE_URL, { prepare: false });
-const readClient = postgres(DATABASE_URL_READ, { prepare: false });
 
 /**
  * Drizzle database client for read and write queries.
  */
-export const db = drizzle(writeClient, { schema });
+export const db: Db = new Proxy({} as Db, {
+  get(_, prop, receiver) {
+    return Reflect.get(getDb(), prop, receiver);
+  },
+});
 
 /**
  * Drizzle database client for read-only or read-heavy queries.
  */
-export const dbRead = drizzle(readClient, { schema });
+export const dbRead: Db = new Proxy({} as Db, {
+  get(_, prop, receiver) {
+    return Reflect.get(getDbRead(), prop, receiver);
+  },
+});
