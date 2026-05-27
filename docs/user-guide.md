@@ -1,6 +1,67 @@
-# Panduan Pengguna Modul Inventaris dan Alert
+# Panduan Pengguna SmartStock Pro
 
-Dokumen ini menjelaskan cara memakai fitur Modul 3 dan Modul 4 SmartStock Pro. Halaman utama ada di @src/app/(dashboard).
+Dokumen ini menjelaskan cara memakai fitur Modul 2, Modul 3, Modul 4, dan Modul 5 SmartStock Pro. Halaman utama ada di @src/app/(dashboard).
+
+## Dashboard
+
+- Buka menu `Dashboard`.
+- Gunakan rentang tanggal untuk melihat data dashboard. Default adalah 30 hari terakhir.
+- Gunakan filter gudang jika ingin melihat data satu gudang saja.
+- Kartu ringkasan menampilkan total produk, total gudang, total stok, nilai inventaris, stok rendah, dan transfer pending.
+- Area alert hanya menampilkan masalah penting seperti stok habis, stok rendah, error critical, job gagal, dan monitoring bermasalah.
+- Chart tren stok membandingkan barang masuk, barang keluar, dan transfer jika datanya tersedia.
+- Chart nilai inventaris memakai perhitungan `quantity_remaining * unit_cost`.
+- Tekan `Refresh` untuk memuat ulang data tanpa mengganti filter.
+- Tekan `Export PDF` jika role memiliki permission export laporan.
+
+## Notification center
+
+- Ikon notifikasi di topbar menampilkan jumlah notifikasi belum dibaca.
+- Preview notifikasi diperbarui otomatis dengan polling ringan.
+- Buka halaman `Notifikasi` untuk melihat daftar lengkap.
+- Gunakan `Tandai dibaca` untuk satu notifikasi.
+- Gunakan `Tandai semua dibaca` untuk membersihkan semua notifikasi aktif.
+- Notifikasi critical dan warning perlu dicek lebih dulu.
+
+## Galeri produk
+
+- Buka menu `Inventaris > Galeri Produk`.
+- Cari produk berdasarkan nama atau SKU.
+- Gunakan filter kategori jika tersedia.
+- Produk tanpa gambar akan memakai placeholder.
+- Pilih gambar JPEG, PNG, atau WebP.
+- Batas ukuran gambar adalah 2 MB.
+- Preview muncul sebelum gambar diunggah.
+- Tekan `Simpan Gambar` untuk mengunggah gambar ke Cloudflare R2.
+- Tekan `Hapus gambar` jika gambar lama perlu dilepas.
+- Form tambah dan edit produk tidak menyediakan input URL gambar manual.
+
+## Peta gudang
+
+- Buka menu `Inventaris > Peta Gudang`.
+- Marker peta menampilkan nama gudang, kota, alamat, total produk, total stok, low stock, dan status.
+- Status healthy berarti gudang tidak punya produk low stock.
+- Status warning berarti ada produk low stock.
+- Status critical berarti ada produk kosong atau masalah besar.
+- Jika gudang tidak muncul, cek latitude dan longitude gudang.
+
+## Monitoring resource
+
+- Buka menu `Sistem > Monitoring`.
+- Lihat status API, database, Redis, dan worker.
+- Lihat CPU usage, memory usage, uptime, dan response time.
+- Data monitoring diperbarui otomatis setiap beberapa detik.
+- Tekan `Jalankan check` untuk memicu health check manual.
+- Response time di atas 1000 ms menjadi warning.
+- Response time di atas 3000 ms menjadi critical.
+
+## Export PDF dashboard
+
+- Buka menu `Dashboard`.
+- Sesuaikan rentang tanggal dan gudang.
+- Tekan `Export PDF`.
+- File berisi brand SmartStock Pro, ringkasan KPI, tabel stok rendah, recent movement, dan distribusi stok gudang.
+- Nama file memakai format `smartstock-dashboard-YYYY-MM-DD.pdf`.
 
 ## Produk
 
@@ -37,7 +98,8 @@ Dokumen ini menjelaskan cara memakai fitur Modul 3 dan Modul 4 SmartStock Pro. H
 - Buka menu `Inventaris > Gudang`.
 - Cari gudang berdasarkan kode, nama, kota, atau alamat.
 - Tambahkan gudang dengan kode unik, nama, dan kota.
-- Latitude dan longitude dipakai sebagai data lokasi gudang.
+- Pilih lokasi gudang dari map picker.
+- Latitude dan longitude terisi otomatis dari marker peta dan tampil sebagai field readonly.
 
 ## Stock in
 
@@ -91,3 +153,53 @@ Dokumen ini menjelaskan cara memakai fitur Modul 3 dan Modul 4 SmartStock Pro. H
 
 - Dashboard hanya menampilkan alert penting.
 - Area alert menampilkan produk low-stock, produk habis, error critical, dan status monitoring bermasalah.
+
+## Modul 5: Transfer, Import, dan Laporan
+
+### Transfer stok
+
+- Buka menu `Operasional > Transfer`.
+- Tekan `Buat Transfer` untuk membuat transfer baru.
+- Pilih gudang asal dan gudang tujuan. Kedua gudang tidak boleh sama.
+- Pilih produk dan isi jumlah yang akan ditransfer.
+- Sistem memvalidasi stok tersedia di gudang asal sebelum menyimpan.
+- Jika stok tidak cukup, sistem menolak transfer dan menampilkan pesan kesalahan.
+- Transfer yang berhasil dibuat akan muncul di list dengan status awal.
+- Untuk melihat detail transfer, klik nomor transfer atau gunakan menu aksi.
+- Detail transfer menampilkan gudang asal, gudang tujuan, produk, jumlah, status, dan sync logs.
+- Untuk membatalkan transfer, buka detail transfer dan tekan `Batalkan Transfer`.
+- Transfer yang sudah selesai atau sudah dibatalkan tidak bisa diubah lagi.
+
+### Import data produk
+
+- Buka menu `Operasional > Import`.
+- Unduh template Excel dengan menekan `Unduh Template Excel`.
+- Isi worksheet `Products Import` sesuai kolom yang tersedia di template.
+- Jangan isi gambar produk dari import. Gambar diatur dari menu `Galeri Produk`.
+- Tekan `Mulai Import` dan pilih file `.xlsx` yang sudah diisi.
+- Sistem akan memvalidasi file dan memulai proses import di background.
+- Pantau progres import di list batch import.
+- Status batch akan berubah dari `PENDING` ke `PROCESSING` ke `COMPLETED` atau `FAILED`.
+- Buka detail batch untuk melihat hasil per baris, termasuk baris yang gagal beserta alasannya.
+- Import selesai tidak berarti semua baris berhasil. Periksa kolom jumlah baris gagal.
+- Buka tab job di detail batch untuk melihat status job worker yang memproses import.
+
+## Profile dan aktivitas saya
+
+- Buka menu `Profil` dari area user di sidebar.
+- User dapat mengubah nama sendiri.
+- Email, role, tanggal dibuat, dan login terakhir hanya bisa dilihat.
+- Untuk mengubah password, isi password saat ini, password baru, dan konfirmasi password.
+- Semua field password punya tombol tampilkan atau sembunyikan.
+- Bagian `Aktivitas Saya` menampilkan audit log milik user yang sedang login.
+- Non-admin tidak bisa melihat aktivitas user lain.
+
+### Laporan
+
+- Buka menu `Laporan`.
+- Tekan `Generate Laporan` untuk membuat laporan baru.
+- Pilih tipe laporan, gudang, kategori produk, dan rentang tanggal.
+- Pilih format output jika tersedia.
+- Tekan `Buat Laporan`. Sistem akan memulai proses di background.
+- Status laporan akan berubah dari `PENDING` ke `PROCESSING` ke `COMPLETED` atau `FAILED`.
+- Setelah selesai, tekan `Download` di baris laporan untuk mengunduh file.

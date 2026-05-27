@@ -40,7 +40,7 @@ type MovementRecord = {
   productName: string;
   productSku: string;
   quantity: number;
-  type: "IN" | "OUT";
+  type: "IN" | "OUT" | "TRANSFER_OUT" | "TRANSFER_IN" | "IMPORT" | "ADJUSTMENT";
   warehouseName: string;
 };
 
@@ -171,6 +171,10 @@ function MovementFilterForm({
               { label: "Semua", value: "" },
               { label: "IN", value: "IN" },
               { label: "OUT", value: "OUT" },
+              { label: "TRANSFER IN", value: "TRANSFER_IN" },
+              { label: "TRANSFER OUT", value: "TRANSFER_OUT" },
+              { label: "IMPORT", value: "IMPORT" },
+              { label: "ADJUSTMENT", value: "ADJUSTMENT" },
             ]}
             value={field.state.value}
           />
@@ -302,6 +306,7 @@ function StockInDialog({
                 onValueChange={field.handleChange}
                 options={productOptions}
                 required
+                searchable
                 value={field.state.value}
               />
             )}
@@ -316,6 +321,7 @@ function StockInDialog({
                 onValueChange={field.handleChange}
                 options={warehouseOptions}
                 required
+                searchable
                 value={field.state.value}
               />
             )}
@@ -502,6 +508,7 @@ function StockOutDialog({
                 }}
                 options={productOptions}
                 required
+                searchable
                 value={field.state.value}
               />
             )}
@@ -519,6 +526,7 @@ function StockOutDialog({
                 }}
                 options={warehouseOptions}
                 required
+                searchable
                 value={field.state.value}
               />
             )}
@@ -608,7 +616,16 @@ export default function StockMovementsPage() {
       </TableCell>
       <TableCell>{movement.warehouseName}</TableCell>
       <TableCell>
-        <StatusBadge label={movement.type} tone={movement.type === "IN" ? "success" : "warning"} />
+        <StatusBadge
+          label={movement.type}
+          tone={
+            movement.type === "IN" || movement.type === "TRANSFER_IN" || movement.type === "IMPORT"
+              ? "success"
+              : movement.type === "OUT" || movement.type === "TRANSFER_OUT"
+                ? "warning"
+                : "neutral"
+          }
+        />
       </TableCell>
       <TableCell>{formatStockQuantity(movement.quantity, "unit")}</TableCell>
       <TableCell>{movement.createdBy ?? "-"}</TableCell>

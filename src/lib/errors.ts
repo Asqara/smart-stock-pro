@@ -132,3 +132,48 @@ export class CsrfError extends AppError {
     super(403, "CSRF_ERROR", publicMessage);
   }
 }
+
+/**
+ * Error for transfer where source and destination warehouse are the same.
+ */
+export class TransferSameWarehouseError extends AppError {
+  constructor(publicMessage = "Gudang asal dan tujuan tidak boleh sama.") {
+    super(400, "TRANSFER_SAME_WAREHOUSE", publicMessage);
+  }
+}
+
+/**
+ * Error for import file validation failures.
+ */
+export class ImportFileError extends AppError {
+  constructor(publicMessage = "File import tidak valid.") {
+    super(400, "IMPORT_FILE_INVALID", publicMessage);
+  }
+}
+
+/**
+ * Error for job not found or already in terminal state.
+ */
+export class JobNotFoundError extends AppError {
+  constructor(publicMessage = "Job tidak ditemukan.") {
+    super(404, "JOB_NOT_FOUND", publicMessage);
+  }
+}
+
+/**
+ * Error for report generation failures.
+ */
+export class ReportGenerationError extends AppError {
+  constructor(publicMessage = "Laporan gagal dibuat.") {
+    super(500, "REPORT_GENERATION_FAILED", publicMessage);
+  }
+}
+
+/**
+ * Error for product image upload validation and storage failures.
+ */
+export class ProductImageUploadError extends AppError {
+  constructor(publicMessage = "Gambar produk tidak valid.") {
+    super(400, "PRODUCT_IMAGE_UPLOAD_FAILED", publicMessage);
+  }
+}

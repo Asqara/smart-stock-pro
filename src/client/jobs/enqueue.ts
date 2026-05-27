@@ -3,11 +3,14 @@ import { Queue, type JobsOptions } from "bullmq";
 import { QUEUE_JOB_NAMES, QUEUE_NAMES } from "@/constants/inventory";
 
 import type {
+  GenerateReportJobData,
+  ImportProductsJobData,
   LowStockAlertJobData,
   LowStockEmailJobData,
   MonitoringCheckJobData,
   QueueEnqueueResult,
   SystemErrorEmailJobData,
+  WarehouseSyncJobData,
 } from "./types";
 
 const QUEUE_PREFIX = "smartstock";
@@ -32,6 +35,9 @@ const DEFAULT_JOB_OPTIONS = {
 let alertQueue: Queue | null = null;
 let emailQueue: Queue | null = null;
 let monitoringQueue: Queue | null = null;
+let importQueue: Queue | null = null;
+let reportQueue: Queue | null = null;
+let warehouseSyncQueue: Queue | null = null;
 
 /**
  * Check whether Redis queue config is available.
@@ -88,6 +94,24 @@ function getMonitoringQueue() {
   return monitoringQueue;
 }
 
+function getImportQueue() {
+  importQueue = getQueue(QUEUE_NAMES.import, importQueue);
+
+  return importQueue;
+}
+
+function getReportQueue() {
+  reportQueue = getQueue(QUEUE_NAMES.report, reportQueue);
+
+  return reportQueue;
+}
+
+function getWarehouseSyncQueue() {
+  warehouseSyncQueue = getQueue(QUEUE_NAMES.warehouseSync, warehouseSyncQueue);
+
+  return warehouseSyncQueue;
+}
+
 async function enqueueJob<Data>(
   queue: Queue,
   name: string,
@@ -110,7 +134,7 @@ async function enqueueJob<Data>(
 }
 
 /**
- * Queue enqueue helpers for inventory alerts, email, and monitoring.
+ * Queue enqueue helpers for all SmartStock Pro background jobs.
  */
 export class Jobs {
   /**
@@ -194,6 +218,57 @@ export class Jobs {
   }
 
   /**
+   * Enqueue product import background job.
+   */
+  static enqueueImportProducts(data: ImportProductsJobData) {
+    if (!isQueueConfigured()) {
+      return Promise.resolve({
+        queued: false,
+        reason: "REDIS_URL belum diatur.",
+      });
+    }
+
+    return enqueueJob(getImportQueue(), QUEUE_JOB_NAMES.importProducts, data, {
+      attempts: 1,
+    });
+  }
+
+  /**
+   * Enqueue report generation background job.
+   */
+  static enqueueGenerateReport(data: GenerateReportJobData) {
+    if (!isQueueConfigured()) {
+      return Promise.resolve({
+        queued: false,
+        reason: "REDIS_URL belum diatur.",
+      });
+    }
+
+    return enqueueJob(getReportQueue(), QUEUE_JOB_NAMES.generateReport, data, {
+      attempts: 2,
+    });
+  }
+
+  /**
+   * Enqueue warehouse sync after transfer completion.
+   */
+  static enqueueWarehouseSync(data: WarehouseSyncJobData) {
+    if (!isQueueConfigured()) {
+      return Promise.resolve({
+        queued: false,
+        reason: "REDIS_URL belum diatur.",
+      });
+    }
+
+    return enqueueJob(
+      getWarehouseSyncQueue(),
+      QUEUE_JOB_NAMES.warehouseSync,
+      data,
+      { attempts: 3 },
+    );
+  }
+
+  /**
    * Read queue counts for monitoring UI.
    */
   static async getQueueSummaries() {
@@ -204,7 +279,10 @@ export class Jobs {
     const queues = [
       { label: "Alert Queue", queue: getAlertQueue() },
       { label: "Email Queue", queue: getEmailQueue() },
+      { label: "Import Queue", queue: getImportQueue() },
       { label: "Monitoring Queue", queue: getMonitoringQueue() },
+      { label: "Report Queue", queue: getReportQueue() },
+      { label: "Warehouse Sync Queue", queue: getWarehouseSyncQueue() },
     ];
     const summaries = [];
 

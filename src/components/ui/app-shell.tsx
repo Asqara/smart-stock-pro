@@ -154,11 +154,11 @@ if (userMenu) {
 
           let badgeNode: ReactNode = null;
 
-          if (item.badge) {
-            badgeNode = (
-              <span className="ml-auto shrink-0">{item.badge}</span>
-            );
-          }
+          // if (item.badge) {
+          //   badgeNode = (
+          //     <span className="ml-auto shrink-0">{item.badge}</span>
+          //   );
+          // }
 
           return (
             <li key={item.href}>
@@ -184,7 +184,7 @@ if (userMenu) {
 
     const groupNodes = navGroups.map((group) => (
       <details
-        className="group grid gap-1"
+        className="group grid gap-2 my-3"
         key={group.label}
         open={group.items.some((item) => item.active)}
       >

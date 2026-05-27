@@ -3,8 +3,16 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit3, MapPin, Plus, Power } from "lucide-react";
-import { useState } from "react";
+import L from "leaflet";
+import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
+import {
+  MapContainer,
+  Marker,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 
 import {
   ActionMenu,
@@ -24,6 +32,11 @@ import {
 } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
 import { APP_META_DESCRIPTION } from "@/constants/app";
+import {
+  INDONESIA_MAP_CENTER,
+  WAREHOUSE_CITY_COORDINATES,
+  WAREHOUSE_MAP_PICKER_ZOOM,
+} from "@/constants/inventory";
 import { eden } from "@/lib/eden";
 import { getFieldError } from "@/utils/formErrors";
 import { getErrorMessage } from "@/utils/getErrorMessage";
@@ -52,6 +65,124 @@ type WarehouseFormValue = {
   longitude: number | null;
   name: string;
 };
+
+type Coordinate = {
+  latitude: number;
+  longitude: number;
+};
+
+type WarehouseLocationPickerProps = {
+  city: string;
+  latitude: number | null;
+  longitude: number | null;
+  onChange: (coordinate: Coordinate) => void;
+};
+
+const warehousePickerIcon = L.divIcon({
+  className: "",
+  html: '<span class="block size-5 rounded-full border-2 border-white bg-primary-blue shadow-md"></span>',
+  iconAnchor: [10, 10],
+  iconSize: [20, 20],
+});
+
+function getPickerCenter(city: string, latitude: number | null, longitude: number | null): Coordinate {
+  if (latitude !== null && longitude !== null) {
+    return { latitude, longitude };
+  }
+
+  const cityName = city.trim() as keyof typeof WAREHOUSE_CITY_COORDINATES;
+
+  return WAREHOUSE_CITY_COORDINATES[cityName] ?? INDONESIA_MAP_CENTER;
+}
+
+function WarehouseMapEvents({ onChange }: Pick<WarehouseLocationPickerProps, "onChange">) {
+  useMapEvents({
+    click: (event) => {
+      onChange({
+        latitude: event.latlng.lat,
+        longitude: event.latlng.lng,
+      });
+    },
+  });
+
+  return null;
+}
+
+function WarehouseMapRecenter({
+  center,
+  hasMarker,
+}: {
+  center: Coordinate;
+  hasMarker: boolean;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.setView(
+      [center.latitude, center.longitude],
+      hasMarker ? WAREHOUSE_MAP_PICKER_ZOOM.location : WAREHOUSE_MAP_PICKER_ZOOM.country,
+    );
+  }, [center, hasMarker, map]);
+
+  return null;
+}
+
+function WarehouseLocationPicker({
+  city,
+  latitude,
+  longitude,
+  onChange,
+}: WarehouseLocationPickerProps) {
+  const hasMarker = latitude !== null && longitude !== null;
+  const center = getPickerCenter(city, latitude, longitude);
+  const markerPosition: [number, number] = [center.latitude, center.longitude];
+  let markerNode = null;
+
+  if (hasMarker) {
+    markerNode = (
+      <Marker
+        draggable
+        eventHandlers={{
+          dragend: (event) => {
+            const marker = event.target as L.Marker;
+            const nextPosition = marker.getLatLng();
+
+            onChange({
+              latitude: nextPosition.lat,
+              longitude: nextPosition.lng,
+            });
+          },
+        }}
+        icon={warehousePickerIcon}
+        position={markerPosition}
+      />
+    );
+  }
+
+  return (
+    <section className="grid gap-2">
+      <section className="h-80 overflow-hidden rounded-lg border border-border-default">
+        <MapContainer
+          center={markerPosition}
+          className="h-full w-full"
+          scrollWheelZoom
+          zoom={hasMarker ? WAREHOUSE_MAP_PICKER_ZOOM.location : WAREHOUSE_MAP_PICKER_ZOOM.country}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <WarehouseMapEvents onChange={onChange} />
+          <WarehouseMapRecenter center={center} hasMarker={hasMarker} />
+          {markerNode}
+        </MapContainer>
+      </section>
+      <p className="ts-xs text-text-muted">
+        Pilih lokasi gudang dari peta. Klik untuk memasang marker, lalu geser marker bila perlu.
+      </p>
+    </section>
+  );
+}
 
 function useWarehouses(page: number, search: string) {
   return useQuery({
@@ -107,7 +238,14 @@ function WarehouseForm({
       longitude: warehouse?.longitude ?? null,
       name: warehouse?.name ?? "",
     },
-    onSubmit: async ({ value }) => mutation.mutateAsync(value),
+    onSubmit: async ({ value }) => {
+      if (value.latitude === null || value.longitude === null) {
+        toast.error("Pilih lokasi gudang dari peta.");
+        return;
+      }
+
+      await mutation.mutateAsync(value);
+    },
   });
   const errorMessage = mutation.error
     ? getErrorMessage(mutation.error, "Gudang gagal disimpan.")
@@ -172,30 +310,6 @@ function WarehouseForm({
             />
           )}
         </form.Field>
-        <form.Field name="latitude">
-          {(field) => (
-            <TextInput
-              id="warehouse-latitude"
-              label="Latitude"
-              onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.target.value ? Number(event.target.value) : null)}
-              type="number"
-              value={field.state.value ?? ""}
-            />
-          )}
-        </form.Field>
-        <form.Field name="longitude">
-          {(field) => (
-            <TextInput
-              id="warehouse-longitude"
-              label="Longitude"
-              onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.target.value ? Number(event.target.value) : null)}
-              type="number"
-              value={field.state.value ?? ""}
-            />
-          )}
-        </form.Field>
       </section>
       <form.Field name="address">
         {(field) => (
@@ -208,6 +322,46 @@ function WarehouseForm({
           />
         )}
       </form.Field>
+      <form.Subscribe
+        selector={(state) => ({
+          city: state.values.city,
+          latitude: state.values.latitude,
+          longitude: state.values.longitude,
+        })}
+      >
+        {({ city, latitude, longitude }) => (
+          <section className="grid gap-3">
+            <WarehouseLocationPicker
+              city={city}
+              latitude={latitude}
+              longitude={longitude}
+              onChange={(coordinate) => {
+                form.setFieldValue("latitude", coordinate.latitude);
+                form.setFieldValue("longitude", coordinate.longitude);
+              }}
+            />
+            <section className="grid gap-4 md:grid-cols-2">
+              <TextInput
+                id="warehouse-latitude"
+                label="Latitude"
+                readOnly
+                required
+                value={latitude ?? ""}
+              />
+              <TextInput
+                id="warehouse-longitude"
+                label="Longitude"
+                readOnly
+                required
+                value={longitude ?? ""}
+              />
+            </section>
+            {latitude === null || longitude === null ? (
+              <p className="ts-xs text-danger">Lokasi gudang wajib dipilih dari peta.</p>
+            ) : null}
+          </section>
+        )}
+      </form.Subscribe>
       <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
         {([canSubmit, isSubmitting]) => (
           <Button disabled={!canSubmit || isSubmitting} type="submit">

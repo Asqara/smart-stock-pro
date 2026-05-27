@@ -23,6 +23,17 @@ export const notificationsController = new Elysia({ prefix: "/notifications", de
       userId: session.user.id,
     });
   })
+  .get("/unread-count", async ({ request }) => {
+    const { session } = await requireReadPermission(
+      request,
+      "notification.read",
+    );
+
+    return Client.Notifications.getUnreadNotificationCount({
+      role: session.user.role,
+      userId: session.user.id,
+    });
+  })
   .patch(
     "/read-all",
     async ({ request }) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { ImageOff } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Helmet } from "react-helmet-async";
 
@@ -41,6 +42,8 @@ type ProductDetail = {
   category: { name: string };
   description: string | null;
   id: string;
+  imageKey: string | null;
+  imageUrl: string | null;
   minimumStock: number;
   movements: Array<{
     createdAt: Date | string;
@@ -107,6 +110,23 @@ export default function ProductDetailPage() {
   }
 
   if (product) {
+    let imageNode = (
+      <section className="grid aspect-square min-h-40 place-items-center rounded-lg bg-muted-surface text-text-muted">
+        <ImageOff className="size-10" />
+      </section>
+    );
+
+    if (product.imageUrl) {
+      imageNode = (
+        <img
+          alt={product.name}
+          className="aspect-square min-h-40 rounded-lg object-cover"
+          loading="lazy"
+          src={product.imageUrl}
+        />
+      );
+    }
+
     const warehouseRows = product.warehouseStock.map((row) => (
       <TableRow key={row.warehouseCode}>
         <TableCell>{row.warehouseName}</TableCell>
@@ -148,19 +168,22 @@ export default function ProductDetailPage() {
               <CardTitle>Informasi Produk</CardTitle>
             </CardHeader>
             <CardContent>
-              <section className="grid gap-3">
-                <p className="ts-mono-sm text-text-muted">{product.sku}</p>
-                <h1 className="ts-3xl text-text-strong">{product.name}</h1>
-                <p className="ts-sm text-text-muted">
-                  {product.description ?? "Tidak ada deskripsi."}
-                </p>
-                <section className="flex flex-wrap gap-2">
-                  <StockStatusBadge status={toStockBadgeStatus(product.stockStatus)} />
-                  <span className="ts-sm text-text-muted">
-                    {product.category.name}
-                    {" / "}
-                    {product.supplier.name}
-                  </span>
+              <section className="grid gap-4 md:grid-cols-[160px_1fr]">
+                {imageNode}
+                <section className="grid gap-3">
+                  <p className="ts-mono-sm text-text-muted">{product.sku}</p>
+                  <h1 className="ts-3xl text-text-strong">{product.name}</h1>
+                  <p className="ts-sm text-text-muted">
+                    {product.description ?? "Tidak ada deskripsi."}
+                  </p>
+                  <section className="flex flex-wrap gap-2">
+                    <StockStatusBadge status={toStockBadgeStatus(product.stockStatus)} />
+                    <span className="ts-sm text-text-muted">
+                      {product.category.name}
+                      {" / "}
+                      {product.supplier.name}
+                    </span>
+                  </section>
                 </section>
               </section>
             </CardContent>
@@ -178,10 +201,10 @@ export default function ProductDetailPage() {
                   Minimum {formatStockQuantity(product.minimumStock, product.unit)}
                 </p>
                 <section className="flex gap-2">
-                  <ButtonLink href={ROUTES.STOCK_IN} variant="secondary">
+                  <ButtonLink href={ROUTES.STOCK.IN} variant="secondary">
                     Stock In
                   </ButtonLink>
-                  <ButtonLink href={ROUTES.STOCK_OUT} variant="secondary">
+                  <ButtonLink href={ROUTES.STOCK.OUT} variant="secondary">
                     Stock Out
                   </ButtonLink>
                 </section>

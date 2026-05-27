@@ -2,12 +2,14 @@
 
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit3, Filter, PackagePlus, Power, RotateCcw } from "lucide-react";
+import { Edit3, Eye, Filter, PackagePlus, Power, RotateCcw } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 
 import {
   ActionMenu,
+  type ActionMenuItem,
   Button,
   DataTable,
   DataTableShell,
@@ -26,6 +28,7 @@ import {
 import { toast } from "@/components/ui/toast";
 import { APP_META_DESCRIPTION } from "@/constants/app";
 import type { ProductStockStatus } from "@/constants/inventory";
+import { ROUTES } from "@/constants/routes";
 import { eden } from "@/lib/eden";
 import { getErrorMessage } from "@/utils/getErrorMessage";
 import {
@@ -68,7 +71,6 @@ type ProductFilters = {
 type ProductFormValue = {
   categoryId: string;
   description: string;
-  imageUrl: string;
   minimumStock: number;
   name: string;
   price: number;
@@ -212,6 +214,7 @@ function ProductFilterForm({
             onBlur={field.handleBlur}
             onValueChange={field.handleChange}
             options={categoryOptions}
+            searchable
             value={field.state.value}
           />
         )}
@@ -224,6 +227,7 @@ function ProductFilterForm({
             onBlur={field.handleBlur}
             onValueChange={field.handleChange}
             options={supplierOptions}
+            searchable
             value={field.state.value}
           />
         )}
@@ -270,7 +274,6 @@ function ProductForm({
       const payload = {
         ...value,
         description: value.description || null,
-        imageUrl: value.imageUrl || null,
         minimumStock: Number(value.minimumStock),
         price: Number(value.price),
       };
@@ -294,7 +297,6 @@ function ProductForm({
     defaultValues: {
       categoryId: product?.category.id ?? categories[0]?.id ?? "",
       description: product?.description ?? "",
-      imageUrl: product?.imageUrl ?? "",
       minimumStock: product?.minimumStock ?? 0,
       name: product?.name ?? "",
       price: product?.price ?? 0,
@@ -390,6 +392,7 @@ function ProductForm({
               onValueChange={field.handleChange}
               options={categoryOptions}
               required
+              searchable
               value={field.state.value}
             />
           )}
@@ -404,6 +407,7 @@ function ProductForm({
               onValueChange={field.handleChange}
               options={supplierOptions}
               required
+              searchable
               value={field.state.value}
             />
           )}
@@ -444,18 +448,6 @@ function ProductForm({
               onChange={(event) => field.handleChange(Number(event.target.value))}
               required
               type="number"
-              value={field.state.value}
-            />
-          )}
-        </form.Field>
-        <form.Field name="imageUrl">
-          {(field) => (
-            <TextInput
-              id="product-image-url"
-              label="URL Gambar"
-              onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.target.value)}
-              placeholder="Opsional"
               value={field.state.value}
             />
           )}
@@ -549,7 +541,13 @@ export default function ProductsPage() {
       );
     }
 
-    const actionItems = [];
+    const actionItems: ActionMenuItem[] = [
+      {
+        href: ROUTES.PRODUCTS.DETAIL(product.id),
+        icon: <Eye />,
+        label: "Lihat Detail",
+      },
+    ];
 
     if (canUpdate) {
       actionItems.push({
@@ -580,7 +578,12 @@ export default function ProductsPage() {
             {thumbnailNode}
             <section className="grid gap-1">
               <span className="ts-mono-xs text-text-muted">{product.sku}</span>
-              <span className="font-medium text-text-strong">{product.name}</span>
+              <Link
+                className="font-medium text-text-strong hover:text-primary-blue"
+                href={ROUTES.PRODUCTS.DETAIL(product.id)}
+              >
+                {product.name}
+              </Link>
             </section>
           </section>
         </TableCell>

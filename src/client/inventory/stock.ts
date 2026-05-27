@@ -281,8 +281,9 @@ export class Stock {
       conditions.push(eq(stockMovements.warehouseId, where.warehouse_id));
     }
 
-    if (where.type === "IN" || where.type === "OUT") {
-      conditions.push(eq(stockMovements.type, where.type));
+    const validTypes = ["IN", "OUT", "TRANSFER_IN", "TRANSFER_OUT", "IMPORT", "ADJUSTMENT"];
+    if (typeof where.type === "string" && validTypes.includes(where.type)) {
+      conditions.push(eq(stockMovements.type, where.type as "IN" | "OUT" | "TRANSFER_IN" | "TRANSFER_OUT" | "IMPORT" | "ADJUSTMENT"));
     }
 
     if (typeof where.dateFrom === "string" && where.dateFrom) {

@@ -7,11 +7,8 @@ import { Helmet } from "react-helmet-async";
 
 import {
   ActionMenu,
-  Card,
-  CardContent,
   DataTable,
   DataTableShell,
-  Dialog,
   Pagination,
   SelectInput,
   StatusBadge,
@@ -23,6 +20,7 @@ import {
 } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
 import { APP_META_DESCRIPTION } from "@/constants/app";
+import { ROUTES } from "@/constants/routes";
 import { eden } from "@/lib/eden";
 import { formatDateTime } from "@/utils/inventoryDisplay";
 
@@ -73,7 +71,6 @@ export default function ErrorLogsPage() {
   const [page, setPage] = useState(1);
   const [severity, setSeverity] = useState("");
   const [resolved, setResolved] = useState("");
-  const [selectedError, setSelectedError] = useState<ErrorLogRecord | null>(null);
   const queryClient = useQueryClient();
   const errorLogsQuery = useErrorLogs(page, severity, resolved);
   const resolveError = useMutation({
@@ -113,9 +110,9 @@ export default function ErrorLogsPage() {
         <ActionMenu
           items={[
             {
+              href: `${ROUTES.ERROR_LOGS}/${errorLog.id}`,
               icon: <Eye />,
               label: "Detail",
-              onSelect: () => setSelectedError(errorLog),
             },
             {
               disabled: Boolean(errorLog.resolvedAt),
@@ -204,28 +201,6 @@ export default function ErrorLogsPage() {
           <TableBody>{tableBody}</TableBody>
         </DataTable>
       </DataTableShell>
-      <Dialog
-        id="error-log-detail"
-        onClose={() => setSelectedError(null)}
-        open={Boolean(selectedError)}
-        title="Detail Error"
-      >
-        <Card>
-          <CardContent>
-            <section className="grid gap-3">
-              <p className="ts-sm font-medium text-text-strong">
-                {selectedError?.message}
-              </p>
-              <p className="ts-mono-xs text-text-muted">
-                {JSON.stringify(selectedError?.metadata ?? {}, null, 2)}
-              </p>
-              <pre className="ts-mono-xs max-h-64 overflow-auto rounded-lg bg-muted-surface p-3 text-text-muted">
-                {selectedError?.stack ?? "Stack trace tidak tersedia."}
-              </pre>
-            </section>
-          </CardContent>
-        </Card>
-      </Dialog>
     </section>
   );
 }

@@ -16,6 +16,7 @@ import { AuditLogs } from "../audit-logs";
 import type { AuditContext } from "../types";
 import {
   getPagination,
+  getProductStockStatus,
   parseUuid,
 } from "./shared";
 
@@ -281,6 +282,94 @@ export class Warehouses {
       .where(eq(stockBatches.warehouseId, warehouseId))
       .groupBy(products.id)
       .orderBy(asc(products.name));
+  }
+
+  /**
+   * Get warehouse map markers with stock and low-stock summary.
+   */
+  static async getWarehouseMapData() {
+    const stockPerProductWarehouse = dbRead
+      .select({
+        currentStock:
+          sql<number>`coalesce(sum(${stockBatches.quantityRemaining}), 0)::int`.as(
+            "current_stock",
+          ),
+        inventoryValue:
+          sql<number>`coalesce(sum(${stockBatches.quantityRemaining} * ${stockBatches.unitCost}), 0)::int`.as(
+            "inventory_value",
+          ),
+        productId: stockBatches.productId,
+        warehouseId: stockBatches.warehouseId,
+      })
+      .from(stockBatches)
+      .groupBy(stockBatches.productId, stockBatches.warehouseId)
+      .as("warehouse_map_stock");
+
+    const rows = await dbRead
+      .select({
+        address: warehouses.address,
+        city: warehouses.city,
+        code: warehouses.code,
+        criticalStockCount:
+          sql<number>`count(distinct ${products.id}) filter (where coalesce(${stockPerProductWarehouse.currentStock}, 0) <= 0 or (${products.minimumStock} > 0 and coalesce(${stockPerProductWarehouse.currentStock}, 0) <= greatest(1, floor(${products.minimumStock} / 2))))::int`,
+        id: warehouses.id,
+        inventoryValue:
+          sql<number>`coalesce(sum(${stockPerProductWarehouse.inventoryValue}), 0)::int`,
+        latitude: warehouses.latitude,
+        longitude: warehouses.longitude,
+        lowStockCount:
+          sql<number>`count(distinct ${products.id}) filter (where ${products.minimumStock} > 0 and coalesce(${stockPerProductWarehouse.currentStock}, 0) <= ${products.minimumStock})::int`,
+        name: warehouses.name,
+        totalProducts:
+          sql<number>`count(distinct ${stockPerProductWarehouse.productId})::int`,
+        totalStock:
+          sql<number>`coalesce(sum(${stockPerProductWarehouse.currentStock}), 0)::int`,
+      })
+      .from(warehouses)
+      .leftJoin(
+        stockPerProductWarehouse,
+        eq(warehouses.id, stockPerProductWarehouse.warehouseId),
+      )
+      .leftJoin(products, eq(stockPerProductWarehouse.productId, products.id))
+      .where(eq(warehouses.isActive, true))
+      .groupBy(warehouses.id)
+      .orderBy(asc(warehouses.name));
+
+    return rows.map((row) => ({
+      ...row,
+      status:
+        Number(row.criticalStockCount) > 0
+          ? "critical"
+          : Number(row.lowStockCount) > 0
+            ? "warning"
+            : "healthy",
+    }));
+  }
+
+  /**
+   * Get one warehouse map summary.
+   */
+  static async getWarehouseStockSummaryForMap(id: string) {
+    const warehouseId = parseUuid(id, "ID gudang tidak valid.");
+    const mapData = await this.getWarehouseMapData();
+    const warehouse = mapData.find((row) => row.id === warehouseId);
+
+    if (!warehouse) {
+      throw new NotFoundAppError("Gudang tidak ditemukan.");
+    }
+
+    const stockRows = await this.getStockSummary(warehouseId);
+
+    return {
+      ...warehouse,
+      products: stockRows.map((row) => ({
+        ...row,
+        stockStatus: getProductStockStatus(
+          Number(row.currentStock ?? 0),
+          row.minimumStock,
+        ),
+      })),
+    };
   }
 
   /**

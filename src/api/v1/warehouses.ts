@@ -17,6 +17,16 @@ export const warehousesController = new Elysia({ prefix: "/v1/warehouses", detai
 
     return Client.Inventory.Warehouses.list(query);
   })
+  .get("/map", async ({ request }) => {
+    await requireReadPermission(request, "warehouse.read_map");
+
+    return Client.Inventory.Warehouses.getWarehouseMapData();
+  })
+  .get("/:id/map-summary", async ({ params, request }) => {
+    await requireReadPermission(request, "warehouse.read_stock");
+
+    return Client.Inventory.Warehouses.getWarehouseStockSummaryForMap(params.id);
+  })
   .get("/:id", async ({ params, request }) => {
     await requireReadPermission(request, "warehouse.read");
 

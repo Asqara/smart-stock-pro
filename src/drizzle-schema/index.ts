@@ -19,9 +19,16 @@ import { USER_ROLE_VALUES } from "@/constants/auth";
 import {
   ERROR_SEVERITY_VALUES,
   HEALTH_CHECK_STATUS_VALUES,
+  IMPORT_ROW_STATUS_VALUES,
+  IMPORT_STATUS_VALUES,
+  JOB_STATUS_VALUES,
+  JOB_TYPE_VALUES,
   NOTIFICATION_SEVERITY_VALUES,
   NOTIFICATION_TYPE_VALUES,
+  REPORT_TYPE_VALUES,
   STOCK_MOVEMENT_TYPE_VALUES,
+  SYNC_STATUS_VALUES,
+  TRANSFER_STATUS_VALUES,
 } from "@/constants/inventory";
 
 const timestampz = (name: string) => timestamp(name, { withTimezone: true });
@@ -38,6 +45,44 @@ export const stockMovementType = pgEnum(
   "stock_movement_type",
   STOCK_MOVEMENT_TYPE_VALUES,
 );
+
+/**
+ * Database enum for warehouse transfer status.
+ */
+export const transferStatus = pgEnum("transfer_status", TRANSFER_STATUS_VALUES);
+
+/**
+ * Database enum for import batch status.
+ */
+export const importStatus = pgEnum("import_status", IMPORT_STATUS_VALUES);
+
+/**
+ * Database enum for import batch row status.
+ */
+export const importRowStatus = pgEnum(
+  "import_row_status",
+  IMPORT_ROW_STATUS_VALUES,
+);
+
+/**
+ * Database enum for background job types.
+ */
+export const jobType = pgEnum("job_type", JOB_TYPE_VALUES);
+
+/**
+ * Database enum for background job status.
+ */
+export const jobStatus = pgEnum("job_status", JOB_STATUS_VALUES);
+
+/**
+ * Database enum for warehouse sync status.
+ */
+export const syncStatus = pgEnum("sync_status", SYNC_STATUS_VALUES);
+
+/**
+ * Database enum for report export types.
+ */
+export const reportType = pgEnum("report_type", REPORT_TYPE_VALUES);
 
 /**
  * Database enum for notification types.
@@ -241,6 +286,7 @@ export const products = pgTable(
     supplierId: uuid("supplier_id")
       .notNull()
       .references(() => suppliers.id, { onDelete: "restrict" }),
+    imageKey: text("image_key"),
     imageUrl: text("image_url"),
     unit: text("unit").notNull(),
     minimumStock: integer("minimum_stock").default(0).notNull(),
@@ -253,6 +299,7 @@ export const products = pgTable(
     categoryIdIdx: index("products_category_id_idx").on(table.categoryId),
     createdAtIdx: index("products_created_at_idx").on(table.createdAt),
     isActiveIdx: index("products_is_active_idx").on(table.isActive),
+    imageKeyIdx: index("products_image_key_idx").on(table.imageKey),
     minimumStockCheck: check(
       "products_minimum_stock_check",
       sql`${table.minimumStock} >= 0`,
@@ -358,6 +405,235 @@ export const stockMovements = pgTable(
 );
 
 /**
+ * Warehouse-to-warehouse stock transfer records.
+ */
+export const stockTransfers = pgTable(
+  "stock_transfers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    transferNumber: text("transfer_number").notNull(),
+    sourceWarehouseId: uuid("source_warehouse_id")
+      .notNull()
+      .references(() => warehouses.id, { onDelete: "restrict" }),
+    destinationWarehouseId: uuid("destination_warehouse_id")
+      .notNull()
+      .references(() => warehouses.id, { onDelete: "restrict" }),
+    status: transferStatus("status").default("PENDING").notNull(),
+    requestedBy: uuid("requested_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    notes: text("notes"),
+    errorMessage: text("error_message"),
+    completedAt: timestampz("completed_at"),
+    cancelledAt: timestampz("cancelled_at"),
+    createdAt: timestampz("created_at").defaultNow().notNull(),
+    updatedAt: timestampz("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    createdAtIdx: index("stock_transfers_created_at_idx").on(table.createdAt),
+    destinationWarehouseIdx: index(
+      "stock_transfers_destination_warehouse_idx",
+    ).on(table.destinationWarehouseId),
+    requestedByIdx: index("stock_transfers_requested_by_idx").on(
+      table.requestedBy,
+    ),
+    sourceWarehouseIdx: index("stock_transfers_source_warehouse_idx").on(
+      table.sourceWarehouseId,
+    ),
+    statusIdx: index("stock_transfers_status_idx").on(table.status),
+    transferNumberIdx: uniqueIndex("stock_transfers_transfer_number_idx").on(
+      table.transferNumber,
+    ),
+  }),
+);
+
+/**
+ * Individual items included in a warehouse transfer.
+ */
+export const stockTransferItems = pgTable(
+  "stock_transfer_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    transferId: uuid("transfer_id")
+      .notNull()
+      .references(() => stockTransfers.id, { onDelete: "cascade" }),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "restrict" }),
+    quantity: integer("quantity").notNull(),
+    createdAt: timestampz("created_at").defaultNow().notNull(),
+    updatedAt: timestampz("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    productIdIdx: index("stock_transfer_items_product_id_idx").on(
+      table.productId,
+    ),
+    quantityCheck: check(
+      "stock_transfer_items_quantity_check",
+      sql`${table.quantity} > 0`,
+    ),
+    transferIdIdx: index("stock_transfer_items_transfer_id_idx").on(
+      table.transferId,
+    ),
+  }),
+);
+
+/**
+ * Background job tracking records for UI progress monitoring.
+ */
+export const jobs = pgTable(
+  "jobs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    queueJobId: text("queue_job_id"),
+    type: jobType("type").notNull(),
+    status: jobStatus("status").default("PENDING").notNull(),
+    progress: integer("progress").default(0).notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    result: jsonb("result").$type<Record<string, unknown>>(),
+    errorMessage: text("error_message"),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    startedAt: timestampz("started_at"),
+    completedAt: timestampz("completed_at"),
+    failedAt: timestampz("failed_at"),
+    createdAt: timestampz("created_at").defaultNow().notNull(),
+    updatedAt: timestampz("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    createdAtIdx: index("jobs_created_at_idx").on(table.createdAt),
+    createdByIdx: index("jobs_created_by_idx").on(table.createdBy),
+    progressCheck: check("jobs_progress_check", sql`${table.progress} >= 0 and ${table.progress} <= 100`),
+    queueJobIdIdx: index("jobs_queue_job_id_idx").on(table.queueJobId),
+    statusIdx: index("jobs_status_idx").on(table.status),
+    typeIdx: index("jobs_type_idx").on(table.type),
+  }),
+);
+
+/**
+ * Import batch records tracking CSV/Excel file processing.
+ */
+export const importBatches = pgTable(
+  "import_batches",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    fileName: text("file_name").notNull(),
+    fileType: text("file_type").notNull(),
+    status: importStatus("status").default("UPLOADED").notNull(),
+    totalRows: integer("total_rows").default(0).notNull(),
+    successRows: integer("success_rows").default(0).notNull(),
+    failedRows: integer("failed_rows").default(0).notNull(),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    completedAt: timestampz("completed_at"),
+    createdAt: timestampz("created_at").defaultNow().notNull(),
+    updatedAt: timestampz("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    createdAtIdx: index("import_batches_created_at_idx").on(table.createdAt),
+    createdByIdx: index("import_batches_created_by_idx").on(table.createdBy),
+    statusIdx: index("import_batches_status_idx").on(table.status),
+  }),
+);
+
+/**
+ * Row-level import results for each CSV/Excel row.
+ */
+export const importBatchRows = pgTable(
+  "import_batch_rows",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    importBatchId: uuid("import_batch_id")
+      .notNull()
+      .references(() => importBatches.id, { onDelete: "cascade" }),
+    rowNumber: integer("row_number").notNull(),
+    rawData: jsonb("raw_data").$type<Record<string, unknown>>().notNull(),
+    normalizedData: jsonb("normalized_data").$type<Record<string, unknown>>(),
+    status: importRowStatus("status").default("VALID").notNull(),
+    errorMessage: text("error_message"),
+    createdProductId: uuid("created_product_id"),
+    createdMovementId: uuid("created_movement_id"),
+    createdAt: timestampz("created_at").defaultNow().notNull(),
+    updatedAt: timestampz("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    importBatchIdIdx: index("import_batch_rows_import_batch_id_idx").on(
+      table.importBatchId,
+    ),
+    statusIdx: index("import_batch_rows_status_idx").on(table.status),
+  }),
+);
+
+/**
+ * Generated report export records.
+ */
+export const reportExports = pgTable(
+  "report_exports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    jobId: uuid("job_id").references(() => jobs.id, { onDelete: "set null" }),
+    type: reportType("type").notNull(),
+    fileName: text("file_name").notNull(),
+    status: jobStatus("status").default("PENDING").notNull(),
+    filter: jsonb("filter").$type<Record<string, unknown>>().notNull(),
+    generatedBy: uuid("generated_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    completedAt: timestampz("completed_at"),
+    createdAt: timestampz("created_at").defaultNow().notNull(),
+    updatedAt: timestampz("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    createdAtIdx: index("report_exports_created_at_idx").on(table.createdAt),
+    generatedByIdx: index("report_exports_generated_by_idx").on(
+      table.generatedBy,
+    ),
+    jobIdIdx: index("report_exports_job_id_idx").on(table.jobId),
+    statusIdx: index("report_exports_status_idx").on(table.status),
+    typeIdx: index("report_exports_type_idx").on(table.type),
+  }),
+);
+
+/**
+ * Warehouse sync log records tracking post-transfer sync jobs.
+ */
+export const warehouseSyncLogs = pgTable(
+  "warehouse_sync_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    jobId: uuid("job_id").references(() => jobs.id, { onDelete: "set null" }),
+    transferId: uuid("transfer_id").references(() => stockTransfers.id, {
+      onDelete: "set null",
+    }),
+    sourceWarehouseId: uuid("source_warehouse_id").references(
+      () => warehouses.id,
+      { onDelete: "set null" },
+    ),
+    destinationWarehouseId: uuid("destination_warehouse_id").references(
+      () => warehouses.id,
+      { onDelete: "set null" },
+    ),
+    status: syncStatus("status").default("PENDING").notNull(),
+    message: text("message").notNull(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    completedAt: timestampz("completed_at"),
+    createdAt: timestampz("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    createdAtIdx: index("warehouse_sync_logs_created_at_idx").on(
+      table.createdAt,
+    ),
+    jobIdIdx: index("warehouse_sync_logs_job_id_idx").on(table.jobId),
+    statusIdx: index("warehouse_sync_logs_status_idx").on(table.status),
+    transferIdIdx: index("warehouse_sync_logs_transfer_id_idx").on(
+      table.transferId,
+    ),
+  }),
+);
+
+/**
  * In-app notifications for users and roles.
  */
 export const notifications = pgTable(
@@ -423,6 +699,8 @@ export const systemHealthChecks = pgTable(
     serviceName: text("service_name").notNull(),
     status: healthCheckStatus("status").notNull(),
     responseTimeMs: integer("response_time_ms").notNull(),
+    cpuUsage: doublePrecision("cpu_usage"),
+    memoryUsage: doublePrecision("memory_usage"),
     uptimeSeconds: integer("uptime_seconds"),
     checkedAt: timestampz("checked_at").notNull(),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
@@ -448,66 +726,74 @@ export const systemHealthChecks = pgTable(
 );
 
 /**
- * Selected user row type.
+ * Request-level API response time metrics captured by middleware.
  */
+export const apiResponseTimeLogs = pgTable(
+  "api_response_time_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    path: text("path").notNull(),
+    method: text("method").notNull(),
+    statusCode: integer("status_code").notNull(),
+    durationMs: doublePrecision("duration_ms").notNull(),
+    createdAt: timestampz("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    createdAtIdx: index("api_response_time_logs_created_at_idx").on(
+      table.createdAt,
+    ),
+    durationMsCheck: check(
+      "api_response_time_logs_duration_ms_check",
+      sql`${table.durationMs} >= 0`,
+    ),
+    durationMsIdx: index("api_response_time_logs_duration_ms_idx").on(
+      table.durationMs,
+    ),
+    pathIdx: index("api_response_time_logs_path_idx").on(table.path),
+  }),
+);
+
+// Row types
+
+/** @see users */
 export type UserRow = typeof users.$inferSelect;
-
-/**
- * Insert user row type.
- */
+/** @see users */
 export type NewUserRow = typeof users.$inferInsert;
-
-/**
- * Selected session row type.
- */
+/** @see sessions */
 export type SessionRow = typeof sessions.$inferSelect;
-
-/**
- * Selected audit log row type.
- */
+/** @see auditLogs */
 export type AuditLogRow = typeof auditLogs.$inferSelect;
-
-/**
- * Selected product row type.
- */
+/** @see products */
 export type ProductRow = typeof products.$inferSelect;
-
-/**
- * Selected category row type.
- */
+/** @see categories */
 export type CategoryRow = typeof categories.$inferSelect;
-
-/**
- * Selected supplier row type.
- */
+/** @see suppliers */
 export type SupplierRow = typeof suppliers.$inferSelect;
-
-/**
- * Selected warehouse row type.
- */
+/** @see warehouses */
 export type WarehouseRow = typeof warehouses.$inferSelect;
-
-/**
- * Selected stock batch row type.
- */
+/** @see stockBatches */
 export type StockBatchRow = typeof stockBatches.$inferSelect;
-
-/**
- * Selected stock movement row type.
- */
+/** @see stockMovements */
 export type StockMovementRow = typeof stockMovements.$inferSelect;
-
-/**
- * Selected notification row type.
- */
+/** @see stockTransfers */
+export type StockTransferRow = typeof stockTransfers.$inferSelect;
+/** @see stockTransferItems */
+export type StockTransferItemRow = typeof stockTransferItems.$inferSelect;
+/** @see jobs */
+export type JobRow = typeof jobs.$inferSelect;
+/** @see importBatches */
+export type ImportBatchRow = typeof importBatches.$inferSelect;
+/** @see importBatchRows */
+export type ImportBatchRowRow = typeof importBatchRows.$inferSelect;
+/** @see reportExports */
+export type ReportExportRow = typeof reportExports.$inferSelect;
+/** @see warehouseSyncLogs */
+export type WarehouseSyncLogRow = typeof warehouseSyncLogs.$inferSelect;
+/** @see notifications */
 export type NotificationRow = typeof notifications.$inferSelect;
-
-/**
- * Selected error log row type.
- */
+/** @see errorLogs */
 export type ErrorLogRow = typeof errorLogs.$inferSelect;
-
-/**
- * Selected system health check row type.
- */
+/** @see systemHealthChecks */
 export type SystemHealthCheckRow = typeof systemHealthChecks.$inferSelect;
+/** @see apiResponseTimeLogs */
+export type ApiResponseTimeLogRow = typeof apiResponseTimeLogs.$inferSelect;

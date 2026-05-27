@@ -3,6 +3,7 @@ import { Elysia } from "elysia";
 import { Client } from "@/client";
 import { createAuthCookies, createClearAuthCookies } from "@/lib/session";
 import { getRequestContext } from "@/lib/request";
+import { UnauthorizedError } from "@/lib/errors";
 import { Schema } from "@/zod-schemas";
 
 import { jsonResponse } from "../response";
@@ -35,21 +36,35 @@ export const authController = new Elysia({ prefix: "/v1/auth", detail: { tags: [
   .post(
     "/logout",
     async ({ request }) => {
-      const { requestContext, session } = await requireSession(request);
+      try {
+        const { requestContext, session } = await requireSession(request);
 
-      Client.Auth.verifyCsrf(request, session);
-      await Client.Auth.logout(session, {
-        ...requestContext,
-        actorUserId: session.user.id,
-      });
+        Client.Auth.verifyCsrf(request, session);
+        await Client.Auth.logout(session, {
+          ...requestContext,
+          actorUserId: session.user.id,
+        });
 
-      return jsonResponse(
-        {
-          message: "Logout berhasil.",
-        },
-        200,
-        createClearAuthCookies(),
-      );
+        return jsonResponse(
+          {
+            message: "Logout berhasil.",
+          },
+          200,
+          createClearAuthCookies(),
+        );
+      } catch (error) {
+        if (!(error instanceof UnauthorizedError)) {
+          throw error;
+        }
+
+        return jsonResponse(
+          {
+            message: "Logout berhasil.",
+          },
+          200,
+          createClearAuthCookies(),
+        );
+      }
     },
     {
       body: Schema.Auth.Logout,

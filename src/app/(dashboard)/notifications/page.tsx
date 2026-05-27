@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCheck } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 
@@ -19,6 +20,7 @@ import { eden } from "@/lib/eden";
 import { formatDateTime } from "@/utils/inventoryDisplay";
 
 type NotificationRecord = {
+  actionHref: string | null;
   createdAt: Date | string;
   id: string;
   isRead: boolean;
@@ -47,6 +49,7 @@ function useNotifications(page: number, severity: string, isRead: string) {
       return response.data;
     },
     queryKey: ["notifications", page, severity, isRead],
+    refetchInterval: 10_000,
   });
 }
 
@@ -137,6 +140,14 @@ export default function NotificationsPage() {
           >
             Tandai Dibaca
           </Button>
+          {notification.actionHref ? (
+            <Link
+              className="ts-sm inline-flex min-h-10 items-center justify-center rounded-md border border-border-default px-3 text-text-strong hover:bg-muted-surface"
+              href={notification.actionHref}
+            >
+              Buka Detail
+            </Link>
+          ) : null}
         </section>
       </CardContent>
     </Card>

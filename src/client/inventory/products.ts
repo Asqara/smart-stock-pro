@@ -41,7 +41,6 @@ import {
 type ProductCreateInput = {
   categoryId: string;
   description?: string | null;
-  imageUrl?: string | null;
   isActive?: boolean;
   minimumStock: number;
   name: string;
@@ -58,6 +57,7 @@ type ProductListItem = {
   createdAt: Date;
   description: string | null;
   id: string;
+  imageKey: string | null;
   imageUrl: string | null;
   isActive: boolean;
   minimumStock: number;
@@ -105,6 +105,7 @@ function toProductListItem(row: {
   createdAt: Date;
   description: string | null;
   id: string;
+  imageKey: string | null;
   imageUrl: string | null;
   isActive: boolean;
   minimumStock: number;
@@ -128,6 +129,7 @@ function toProductListItem(row: {
     createdAt: row.createdAt,
     description: row.description,
     id: row.id,
+    imageKey: row.imageKey,
     imageUrl: row.imageUrl,
     isActive: row.isActive,
     minimumStock: row.minimumStock,
@@ -289,6 +291,7 @@ export class Products {
         createdAt: products.createdAt,
         description: products.description,
         id: products.id,
+        imageKey: products.imageKey,
         imageUrl: products.imageUrl,
         isActive: products.isActive,
         minimumStock: products.minimumStock,
@@ -340,6 +343,7 @@ export class Products {
         createdAt: products.createdAt,
         description: products.description,
         id: products.id,
+        imageKey: products.imageKey,
         imageUrl: products.imageUrl,
         isActive: products.isActive,
         minimumStock: products.minimumStock,
@@ -433,7 +437,6 @@ export class Products {
       .values({
         categoryId: input.categoryId,
         description: input.description ?? null,
-        imageUrl: input.imageUrl ?? null,
         isActive: input.isActive ?? true,
         minimumStock: input.minimumStock,
         name: input.name,
@@ -487,7 +490,6 @@ export class Products {
         categoryId: input.categoryId ?? current.categoryId,
         description:
           "description" in input ? (input.description ?? null) : current.description,
-        imageUrl: "imageUrl" in input ? (input.imageUrl ?? null) : current.imageUrl,
         isActive: input.isActive ?? current.isActive,
         minimumStock: input.minimumStock ?? current.minimumStock,
         name: input.name ?? current.name,

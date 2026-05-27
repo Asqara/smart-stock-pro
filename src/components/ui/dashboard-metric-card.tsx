@@ -38,7 +38,7 @@ export function DashboardMetricCard({
       <span
         aria-hidden="true"
         className={mc(
-          "inline-flex size-10 items-center justify-center rounded-full border [&>svg]:size-5",
+          "inline-flex size-8 items-center justify-center rounded-full border [&>svg]:size-3",
           STATUS_TONE_CLASS_NAMES[tone],
         )}
       >

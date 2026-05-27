@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm db:generate)",
+      "Bash(pnpm db:migrate)",
+      "Bash(New-Item -ItemType Directory -Force \"d:\\\\Ngonlenin\\\\smart-stock-pro\\\\src\\\\zod-schemas\\\\transfer\")",
+      "Bash(Out-Null)",
+      "Bash(New-Item -ItemType Directory -Force \"d:\\\\Ngonlenin\\\\smart-stock-pro\\\\src\\\\zod-schemas\\\\import\")",
+      "Bash(New-Item -ItemType Directory -Force \"d:\\\\Ngonlenin\\\\smart-stock-pro\\\\src\\\\zod-schemas\\\\report\")",
+      "Bash(New-Item -ItemType Directory -Force \"d:\\\\Ngonlenin\\\\smart-stock-pro\\\\src\\\\zod-schemas\\\\jobs\")",
+      "Bash(mkdir -p \"d:/Ngonlenin/smart-stock-pro/src/app/\\(dashboard\\)/transfers/create\" \"d:/Ngonlenin/smart-stock-pro/src/app/\\(dashboard\\)/transfers/[id]\" \"d:/Ngonlenin/smart-stock-pro/src/app/\\(dashboard\\)/imports/create\" \"d:/Ngonlenin/smart-stock-pro/src/app/\\(dashboard\\)/imports/[id]\" \"d:/Ngonlenin/smart-stock-pro/src/app/\\(dashboard\\)/reports/generate\" \"d:/Ngonlenin/smart-stock-pro/src/app/\\(dashboard\\)/reports/[id]\")",
+      "Bash(pnpm lint *)",
+      "Bash(Remove-Item \"d:\\\\Ngonlenin\\\\smart-stock-pro\\\\src\\\\api\\\\monitoring.ts\")",
+      "PowerShell(Remove-Item \"d:\\\\Ngonlenin\\\\smart-stock-pro\\\\src\\\\api\\\\monitoring.ts\" -Confirm:$false)",
+      "Bash(xargs grep -l \"error\")",
+      "Bash(mkdir -p \"d:/Ngonlenin/smart-stock-pro/src/app/\\(dashboard\\)/error-logs/[id]\")",
+      "Bash(powershell -Command \"Get-Content 'd:/Ngonlenin/smart-stock-pro/node_modules/.pnpm/pdfmake@0.2.23/node_modules/pdfmake/build/vfs_fonts.js' -Tail 5\")",
+      "Bash(node -e \"const vfs = require\\('D:/Ngonlenin/smart-stock-pro/node_modules/.pnpm/pdfmake@0.2.23/node_modules/pdfmake/build/vfs_fonts.js'\\); console.log\\('type:', typeof vfs\\); console.log\\('keys:', Object.keys\\(vfs\\).slice\\(0,5\\)\\); console.log\\('has pdfMake:', 'pdfMake' in vfs\\);\")",
+      "Bash(Get-ChildItem -Path \"d:\\\\Ngonlenin\\\\smart-stock-pro\\\\src\" -Recurse -Directory)",
+      "Bash(Select-Object -First 20)",
+      "Bash(grep -E '\"\\\\/|`\\\\/|'\"'\"'\\\\/)"
+    ],
+    "additionalDirectories": [
+      "d:\\Ngonlenin\\smart-stock-pro\\src\\app\\(dashboard)\\transfers",
+      "d:\\Ngonlenin\\smart-stock-pro\\src\\app\\(dashboard)\\error-logs"
+    ]
+  }
+}

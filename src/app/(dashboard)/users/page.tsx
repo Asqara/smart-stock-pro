@@ -23,6 +23,7 @@ import {
   DataTableShell,
   Dialog,
   Pagination,
+  PasswordInput,
   SelectInput,
   StatusBadge,
   TableBody,
@@ -38,6 +39,7 @@ import {
   type UserRole,
 } from "@/constants/auth";
 import { APP_META_DESCRIPTION } from "@/constants/app";
+import { API_ROUTES } from "@/constants/routes";
 import { eden } from "@/lib/eden";
 import { getFieldError } from "@/utils/formErrors";
 import { getErrorMessage } from "@/utils/getErrorMessage";
@@ -240,7 +242,7 @@ function CreateUserForm({ onDone }: CreateUserFormProps) {
         }}
       >
         {(field) => (
-          <TextInput
+          <PasswordInput
             errorMessage={getFieldError(field.state.meta.errors)}
             helperText="Wajib huruf besar, huruf kecil, angka, dan simbol."
             id="create-password"
@@ -248,7 +250,6 @@ function CreateUserForm({ onDone }: CreateUserFormProps) {
             onBlur={field.handleBlur}
             onChange={(event) => field.handleChange(event.target.value)}
             required
-            type="password"
             value={field.state.value}
           />
         )}
@@ -706,7 +707,7 @@ function PasswordForm({ onDone, user }: UserFormProps) {
       </p>
       <form.Field name="password">
         {(field) => (
-          <TextInput
+          <PasswordInput
             errorMessage={getFieldError(field.state.meta.errors)}
             helperText="Wajib huruf besar, huruf kecil, angka, dan simbol."
             id="reset-password"
@@ -714,7 +715,6 @@ function PasswordForm({ onDone, user }: UserFormProps) {
             onBlur={field.handleBlur}
             onChange={(event) => field.handleChange(event.target.value)}
             required
-            type="password"
             value={field.state.value}
           />
         )}
@@ -913,7 +913,7 @@ export default function UsersPage() {
         </section>
         <section className="flex flex-wrap items-center gap-2">
           <ButtonExternalLink
-            href="/api/__internal__/users/template"
+            href={API_ROUTES.INTERNAL_USERS_TEMPLATE}
             leftIcon={<FileDown />}
             rel=""
             target="_self"

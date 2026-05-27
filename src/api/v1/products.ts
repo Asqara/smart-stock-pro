@@ -22,6 +22,11 @@ export const productsController = new Elysia({ prefix: "/v1/products", detail: {
 
     return Client.Inventory.Products.list(query);
   })
+  .get("/gallery", async ({ query, request }) => {
+    await requireReadPermission(request, "product.read");
+
+    return Client.ProductMedia.getProductGallery(query);
+  })
   .get("/:id", async ({ params, request }) => {
     await requireReadPermission(request, "product.read");
 
@@ -31,6 +36,38 @@ export const productsController = new Elysia({ prefix: "/v1/products", detail: {
     await requireReadPermission(request, "stock.read");
 
     return Client.Inventory.Products.getStockSummary(params.id);
+  })
+  .post(
+    "/:id/image",
+    async ({ body, params, request }) => {
+      const { requestContext, session } = await requireMutationPermission(
+        request,
+        "product.upload_image",
+      );
+
+      return Client.ProductMedia.uploadProductImage(
+        params.id,
+        body,
+        {
+          ...requestContext,
+          actorUserId: session.user.id,
+        },
+      );
+    },
+    {
+      body: Schema.Inventory.ProductImageUpload,
+    },
+  )
+  .delete("/:id/image", async ({ params, request }) => {
+    const { requestContext, session } = await requireMutationPermission(
+      request,
+      "product.upload_image",
+    );
+
+    return Client.ProductMedia.deleteProductImage(params.id, {
+      ...requestContext,
+      actorUserId: session.user.id,
+    });
   })
   .post(
     "/",

@@ -13,6 +13,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  PasswordInput,
   TextInput,
 } from "@/components/ui";
 import { APP_META_DESCRIPTION } from "@/constants/app";
@@ -51,7 +52,7 @@ function LoginPageContent() {
   const reason = searchParams.get("reason");
   const sessionExpiredMessage =
     reason === "session-expired"
-      ? "Session telah berakhir. Silakan login kembali."
+      ? "Session Anda telah berakhir. Silakan masuk kembali."
       : null;
   const form = useForm({
     defaultValues: {
@@ -184,7 +185,7 @@ function LoginPageContent() {
                 }}
               >
                 {(field) => (
-                  <TextInput
+                  <PasswordInput
                     autoComplete="current-password"
                     errorMessage={getFieldError(field.state.meta.errors)}
                     id={field.name}
@@ -193,7 +194,6 @@ function LoginPageContent() {
                     onChange={(event) => field.handleChange(event.target.value)}
                     placeholder="Masukkan password"
                     required
-                    type="password"
                     value={field.state.value}
                   />
                 )}

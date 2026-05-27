@@ -2,20 +2,24 @@
 
 import {
   Activity,
+  ArrowLeftRight,
   BarChart3,
   Bell,
   Boxes,
+  FileText,
   Package,
   LogOut,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
   ShieldCheck,
+  Upload,
+  UserCircle,
   Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -32,8 +36,9 @@ import {
 import { NAVIGATION_SECTION_LABELS } from "@/constants/design";
 import { USER_ROLE_LABELS } from "@/constants/auth";
 import { ROUTES } from "@/constants/routes";
-import { useAuth } from "@/hooks/useAuth";
+import { isUnauthorizedError, useAuth } from "@/hooks/useAuth";
 import { eden } from "@/lib/eden";
+import { getErrorMessage } from "@/utils/getErrorMessage";
 import { formatDateTime } from "@/utils/inventoryDisplay";
 import { mc } from "@/utils/mc";
 import { hasPermission } from "@/utils/permissions";
@@ -58,8 +63,16 @@ type NotificationOverviewRecord = {
 };
 
 function getTitle(pathname: string) {
-  if (pathname === ROUTES.PRODUCTS) {
+  if (pathname === ROUTES.PRODUCTS.INDEX) {
     return "Produk";
+  }
+
+  if (pathname === ROUTES.PRODUCTS.GALLERY) {
+    return "Galeri Produk";
+  }
+
+  if (pathname === ROUTES.PRODUCTS.DETAIL(":id")) {
+    return "Detail Produk";
   }
 
   if (pathname === ROUTES.CATEGORIES) {
@@ -70,24 +83,24 @@ function getTitle(pathname: string) {
     return "Supplier";
   }
 
-  if (pathname === ROUTES.WAREHOUSES) {
+  if (pathname === ROUTES.WAREHOUSES.INDEX) {
     return "Gudang";
   }
 
-  if (pathname === ROUTES.STOCK_MOVEMENTS) {
+  if (pathname === ROUTES.WAREHOUSES.MAP) {
+    return "Peta Gudang";
+  }
+
+  if (pathname === ROUTES.STOCK.MOVEMENTS) {
     return "Riwayat Stok";
-  }
-
-  if (pathname === ROUTES.STOCK_IN) {
-    return "Stock In";
-  }
-
-  if (pathname === ROUTES.STOCK_OUT) {
-    return "Stock Out";
   }
 
   if (pathname === ROUTES.NOTIFICATIONS) {
     return "Notifikasi";
+  }
+
+  if (pathname === ROUTES.PROFILE) {
+    return "Profil";
   }
 
   if (pathname === ROUTES.ERROR_LOGS) {
@@ -104,6 +117,18 @@ function getTitle(pathname: string) {
 
   if (pathname === ROUTES.AUDIT_LOGS) {
     return "Audit Log";
+  }
+
+  if (pathname.startsWith(ROUTES.TRANSFERS.INDEX)) {
+    return "Transfer";
+  }
+
+  if (pathname.startsWith(ROUTES.IMPORTS.INDEX)) {
+    return "Import";
+  }
+
+  if (pathname.startsWith(ROUTES.REPORTS.INDEX)) {
+    return "Laporan";
   }
 
   return "Dashboard";
@@ -143,6 +168,17 @@ function UserMenu({ collapsed, email, name, role }: UserMenuProps) {
           </section>
         )}
       </section>
+
+      <Link
+        className={mc(
+          "inline-flex min-h-10 items-center gap-2 rounded-md px-3 py-2 text-sidebar-text transition-colors hover:bg-sidebar-hover hover:text-text-inverse",
+          collapsed ? "justify-center px-2" : "w-full justify-start",
+        )}
+        href={ROUTES.PROFILE}
+      >
+        <UserCircle className="size-4" />
+        {!collapsed && <span className="ts-sm">Profil</span>}
+      </Link>
 
       <Button
         className={mc(
@@ -188,7 +224,7 @@ function useNotificationOverview(enabled: boolean) {
       return response.data;
     },
     queryKey: ["notifications", "overview"],
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
   });
 }
 
@@ -320,10 +356,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const auth = useAuth();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const router = useRouter();
 
   const user = auth.data?.user;
-  const isUnauthorized = auth.isError;
+  const isSessionExpired = auth.isError && isUnauthorizedError(auth.error);
+  const hasSessionCheckError = auth.isError && !isSessionExpired;
   const title = getTitle(pathname);
   const canReadNotifications = user
     ? hasPermission(user.role, "notification.read")
@@ -339,9 +377,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
     if (hasPermission(user.role, "product.read")) {
       inventoryItems.push({
-        active: pathname === ROUTES.PRODUCTS,
-        href: ROUTES.PRODUCTS,
+        active: pathname === ROUTES.PRODUCTS.INDEX,
+        href: ROUTES.PRODUCTS.INDEX,
         label: "Produk",
+      });
+      inventoryItems.push({
+        active: pathname === ROUTES.PRODUCTS.GALLERY,
+        href: ROUTES.PRODUCTS.GALLERY,
+        label: "Galeri Produk",
       });
     }
 
@@ -363,33 +406,52 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
     if (hasPermission(user.role, "warehouse.read")) {
       inventoryItems.push({
-        active: pathname === ROUTES.WAREHOUSES,
-        href: ROUTES.WAREHOUSES,
+        active: pathname === ROUTES.WAREHOUSES.INDEX,
+        href: ROUTES.WAREHOUSES.INDEX,
         label: "Gudang",
+      });
+    }
+
+    if (hasPermission(user.role, "warehouse.read_map")) {
+      inventoryItems.push({
+        active: pathname === ROUTES.WAREHOUSES.MAP,
+        href: ROUTES.WAREHOUSES.MAP,
+        label: "Peta Gudang",
       });
     }
 
     if (hasPermission(user.role, "stock.read_movements")) {
       operationItems.push({
-        active: pathname === ROUTES.STOCK_MOVEMENTS,
-        href: ROUTES.STOCK_MOVEMENTS,
+        active: pathname === ROUTES.STOCK.MOVEMENTS,
+        href: ROUTES.STOCK.MOVEMENTS,
         label: "Riwayat Stok",
       });
     }
 
-    if (hasPermission(user.role, "stock.in")) {
+    if (hasPermission(user.role, "transfer.read")) {
       operationItems.push({
-        active: pathname === ROUTES.STOCK_IN,
-        href: ROUTES.STOCK_IN,
-        label: "Stock In",
+        active: pathname.startsWith(ROUTES.TRANSFERS.INDEX),
+        href: ROUTES.TRANSFERS.INDEX,
+        icon: <ArrowLeftRight />,
+        label: "Transfer",
       });
     }
 
-    if (hasPermission(user.role, "stock.out")) {
+    if (hasPermission(user.role, "import.read")) {
       operationItems.push({
-        active: pathname === ROUTES.STOCK_OUT,
-        href: ROUTES.STOCK_OUT,
-        label: "Stock Out",
+        active: pathname.startsWith(ROUTES.IMPORTS.INDEX),
+        href: ROUTES.IMPORTS.INDEX,
+        icon: <Upload />,
+        label: "Import",
+      });
+    }
+
+    if (hasPermission(user.role, "report.read")) {
+      operationItems.push({
+        active: pathname.startsWith(ROUTES.REPORTS.INDEX),
+        href: ROUTES.REPORTS.INDEX,
+        icon: <FileText />,
+        label: "Laporan",
       });
     }
 
@@ -492,17 +554,51 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   useEffect(() => {
-    if (isUnauthorized) {
+    if (isSessionExpired) {
+      queryClient.removeQueries({ queryKey: ["auth"] });
       router.replace(`${ROUTES.LOGIN}?reason=session-expired`);
     }
-  }, [isUnauthorized, router]);
+  }, [isSessionExpired, queryClient, router]);
 
-  if (auth.isLoading || !user) {
+  if (auth.isLoading || isSessionExpired) {
     return (
       <main className="grid min-h-screen place-items-center bg-page-background p-6">
         <section className="grid gap-4 text-center">
           <BrandLogo className="mx-auto" />
-          <p className="ts-sm text-text-muted">Memeriksa session...</p>
+          <p className="ts-sm text-text-muted">
+            {isSessionExpired
+              ? "Session Anda telah berakhir. Mengarahkan ke login..."
+              : "Memeriksa session..."}
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  if (hasSessionCheckError) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-page-background p-6">
+        <section className="grid max-w-md gap-4 text-center">
+          <BrandLogo className="mx-auto" />
+          <section className="rounded-lg border border-danger-border bg-danger-bg px-4 py-3 text-danger">
+            <p className="ts-sm font-medium">
+              {getErrorMessage(auth.error, "Session gagal diperiksa.")}
+            </p>
+          </section>
+          <Button onClick={() => auth.refetch()} type="button">
+            Coba Lagi
+          </Button>
+        </section>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-page-background p-6">
+        <section className="grid gap-4 text-center">
+          <BrandLogo className="mx-auto" />
+          <p className="ts-sm text-text-muted">Memuat data user...</p>
         </section>
       </main>
     );

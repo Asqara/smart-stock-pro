@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { STOCK_VALUATION_METHOD_VALUES } from "@/constants/inventory";
+import {
+  PRODUCT_IMAGE_ALLOWED_MIME_TYPES,
+  UPLOAD_FILE_LIMIT_BYTES,
+} from "@/constants/upload";
 
 const UUID_SCHEMA = z.string().uuid("ID tidak valid.");
 const OPTIONAL_TEXT_SCHEMA = z.string().trim().max(500).optional().nullable();
@@ -18,7 +22,6 @@ export class Inventory {
     description: OPTIONAL_TEXT_SCHEMA,
     categoryId: UUID_SCHEMA,
     supplierId: UUID_SCHEMA,
-    imageUrl: z.string().trim().url("URL gambar tidak valid.").optional().nullable(),
     unit: z.string().trim().min(1, "Unit wajib diisi.").max(40),
     minimumStock: z.coerce.number().int().min(0, "Stok minimum tidak boleh negatif.").default(0),
     price: z.coerce.number().int().min(0, "Harga tidak boleh negatif.").default(0),
@@ -113,5 +116,20 @@ export class Inventory {
     quantity: z.coerce.number().int().positive("Jumlah harus lebih dari 0."),
     notes: OPTIONAL_TEXT_SCHEMA,
     valuationMethod: z.enum(STOCK_VALUATION_METHOD_VALUES).default("FIFO"),
+  });
+
+  /**
+   * Product image upload request body.
+   */
+  static ProductImageUpload = z.object({
+    dataBase64: z.string().min(1, "Data gambar wajib diisi."),
+    fileName: z.string().trim().min(1, "Nama file wajib diisi.").max(180),
+    fileSize: z.number().int().positive().max(
+      UPLOAD_FILE_LIMIT_BYTES.product,
+      "Ukuran gambar maksimal 2 MB.",
+    ),
+    fileType: z.enum(PRODUCT_IMAGE_ALLOWED_MIME_TYPES, {
+      error: "Format gambar harus JPG, PNG, atau WebP.",
+    }),
   });
 }

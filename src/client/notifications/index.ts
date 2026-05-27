@@ -97,6 +97,18 @@ export class Notifications {
   }
 
   /**
+   * Create notifications for multiple roles.
+   */
+  static createForRoles(
+    roleTargets: readonly UserRole[],
+    input: Omit<CreateNotificationInput, "roleTarget" | "userId">,
+  ) {
+    return Promise.all(
+      roleTargets.map((roleTarget) => this.createForRole(roleTarget, input)),
+    );
+  }
+
+  /**
    * List notifications visible to one user and role.
    */
   static async list(
@@ -122,13 +134,8 @@ export class Notifications {
       conditions.push(eq(notifications.severity, where.severity));
     }
 
-    if (
-      where.type === "LOW_STOCK" ||
-      where.type === "SYSTEM_ERROR" ||
-      where.type === "RESPONSE_TIME_ALERT" ||
-      where.type === "UPTIME_ALERT"
-    ) {
-      conditions.push(eq(notifications.type, where.type));
+    if (typeof where.type === "string" && where.type) {
+      conditions.push(eq(notifications.type, where.type as NotificationType));
     }
 
     if (typeof where.isRead === "string" && where.isRead) {
@@ -157,6 +164,30 @@ export class Notifications {
       data,
       pagination: getPagination(filters.page, filters.limit, Number(total)),
     };
+  }
+
+  /**
+   * Count unread notifications visible to one user and role.
+   */
+  static async getUnreadNotificationCount(viewer: {
+    role: UserRole;
+    userId: string;
+  }) {
+    const [{ total }] = await dbRead
+      .select({ total: count() })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.isRead, false),
+          or(
+            eq(notifications.userId, viewer.userId),
+            eq(notifications.roleTarget, viewer.role),
+            and(isNull(notifications.userId), isNull(notifications.roleTarget)),
+          )!,
+        ),
+      );
+
+    return { unreadCount: Number(total) };
   }
 
   /**

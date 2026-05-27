@@ -11,13 +11,20 @@ import {
 import {
   categories,
   errorLogs,
+  importBatchRows,
+  importBatches,
+  jobs,
   notifications,
   products,
+  reportExports,
   stockBatches,
   stockMovements,
+  stockTransferItems,
+  stockTransfers,
   suppliers,
   systemHealthChecks,
   users,
+  warehouseSyncLogs,
   warehouses,
 } from "@/drizzle-schema";
 import { validatePasswordStrength } from "@/utils/passwordPolicy";
@@ -98,6 +105,7 @@ class DemoSeed {
 
     await this.seedStock(db, productMap, warehouseMap, seededUsers[0]?.id ?? null);
     await this.seedAlerts(db, seededUsers[0]?.id ?? null);
+    await this.seedModule5(db, productMap, warehouseMap, seededUsers[0]?.id ?? null, seededUsers[1]?.id ?? null);
     await client.end();
 
     console.log("Seed demo SmartStock Pro selesai.");
@@ -233,6 +241,7 @@ class DemoSeed {
     supplierMap: Map<string, string>,
   ) {
     const productMap = new Map<string, string>();
+    let index = 0;
 
     for (const product of DEMO_PRODUCTS) {
       const [sku, name, description, categorySlug, supplierName, unit, minimumStock, price] = product;
@@ -248,6 +257,7 @@ class DemoSeed {
         .values({
           categoryId,
           description,
+          imageUrl: index % 3 === 0 ? "/favicon.png" : null,
           isActive: true,
           minimumStock,
           name,
@@ -260,6 +270,7 @@ class DemoSeed {
           set: {
             categoryId,
             description,
+            imageUrl: index % 3 === 0 ? "/favicon.png" : null,
             isActive: true,
             minimumStock,
             name,
@@ -273,6 +284,7 @@ class DemoSeed {
         .returning();
 
       productMap.set(sku, row.id);
+      index += 1;
     }
 
     return productMap;
@@ -301,7 +313,9 @@ class DemoSeed {
       }
 
       const isLowStock = index % 7 === 0;
-      const quantity = isLowStock ? 3 : 18 + index;
+      const isOutOfStock = index % 11 === 0;
+      const quantity = isOutOfStock ? 6 : isLowStock ? 3 : 18 + index;
+      const stockOutQuantity = isOutOfStock ? quantity : index % 5 === 0 && quantity > 5 ? 4 : 0;
       const unitCost = DEMO_PRODUCTS.find((product) => product[0] === sku)?.[7] ?? 1000000;
       const [movement] = await db
         .insert(stockMovements)
@@ -327,12 +341,12 @@ class DemoSeed {
         warehouseId,
       });
 
-      if (index % 5 === 0 && quantity > 5) {
+      if (stockOutQuantity > 0) {
         await db.insert(stockMovements).values({
           createdBy: actorUserId,
           notes: "Seed demo stock out FIFO.",
           productId,
-          quantity: 4,
+          quantity: stockOutQuantity,
           referenceType: "STOCK_OUT",
           type: "OUT",
           unitCost,
@@ -341,7 +355,7 @@ class DemoSeed {
 
         await db
           .update(stockBatches)
-          .set({ quantityRemaining: quantity - 4, updatedAt: new Date() })
+          .set({ quantityRemaining: quantity - stockOutQuantity, updatedAt: new Date() })
           .where(and(eq(stockBatches.productId, productId), eq(stockBatches.warehouseId, warehouseId)));
       }
 
@@ -406,6 +420,8 @@ class DemoSeed {
       await db.insert(systemHealthChecks).values([
         {
           checkedAt: new Date(),
+          cpuUsage: 18,
+          memoryUsage: 42,
           metadata: { demo: true },
           responseTimeMs: 120,
           serviceName: "api",
@@ -414,6 +430,8 @@ class DemoSeed {
         },
         {
           checkedAt: new Date(),
+          cpuUsage: 16,
+          memoryUsage: 41,
           metadata: { demo: true },
           responseTimeMs: 85,
           serviceName: "database",
@@ -422,6 +440,8 @@ class DemoSeed {
         },
         {
           checkedAt: new Date(),
+          cpuUsage: 20,
+          memoryUsage: 44,
           metadata: { jobsWaiting: 0 },
           responseTimeMs: 450,
           serviceName: "redis",
@@ -430,11 +450,210 @@ class DemoSeed {
         },
         {
           checkedAt: new Date(),
+          cpuUsage: 19,
+          memoryUsage: 43,
           metadata: { heartbeat: true },
           responseTimeMs: 0,
           serviceName: "worker",
           status: "healthy",
           uptimeSeconds: 3600,
+        },
+      ]);
+    }
+  }
+  private static async seedModule5(
+    db: ReturnType<typeof drizzle>,
+    productMap: Map<string, string>,
+    warehouseMap: Map<string, string>,
+    adminId: string | null,
+    managerId: string | null,
+  ) {
+    const [existingTransfer] = await db.select().from(stockTransfers).limit(1);
+    if (existingTransfer) return;
+
+    const jktId = warehouseMap.get("JKT");
+    const sbyId = warehouseMap.get("SBY");
+    const bdgId = warehouseMap.get("BDG");
+    const mdnId = warehouseMap.get("MDN");
+    const productIds = [...productMap.values()];
+    const actorId = adminId ?? managerId;
+
+    if (!jktId || !sbyId || !bdgId || !actorId) return;
+
+    const [completedTransfer] = await db
+      .insert(stockTransfers)
+      .values({
+        completedAt: new Date(Date.now() - 2 * 86_400_000),
+        destinationWarehouseId: sbyId,
+        notes: "Transfer stok laptop ke Surabaya.",
+        requestedBy: actorId,
+        sourceWarehouseId: jktId,
+        status: "COMPLETED",
+        transferNumber: "TRF-20260524-DEMO01",
+      })
+      .returning();
+
+    if (productIds[0] && completedTransfer) {
+      await db.insert(stockTransferItems).values({
+        productId: productIds[0],
+        quantity: 5,
+        transferId: completedTransfer.id,
+      });
+    }
+
+    const [cancelledTransfer] = await db
+      .insert(stockTransfers)
+      .values({
+        cancelledAt: new Date(Date.now() - 86_400_000),
+        destinationWarehouseId: bdgId,
+        notes: null,
+        requestedBy: actorId,
+        sourceWarehouseId: jktId,
+        status: "CANCELLED",
+        transferNumber: "TRF-20260525-DEMO02",
+      })
+      .returning();
+
+    if (productIds[1] && cancelledTransfer) {
+      await db.insert(stockTransferItems).values({
+        productId: productIds[1],
+        quantity: 3,
+        transferId: cancelledTransfer.id,
+      });
+    }
+
+    const [pendingTransfer] = await db
+      .insert(stockTransfers)
+      .values({
+        destinationWarehouseId: mdnId ?? sbyId,
+        notes: "Transfer router ke Medan.",
+        requestedBy: managerId ?? actorId,
+        sourceWarehouseId: jktId,
+        status: "PENDING",
+        transferNumber: "TRF-20260526-DEMO03",
+      })
+      .returning();
+
+    if (productIds[2] && pendingTransfer) {
+      await db.insert(stockTransferItems).values({
+        productId: productIds[2],
+        quantity: 2,
+        transferId: pendingTransfer.id,
+      });
+    }
+
+    const [completedJob] = await db
+      .insert(jobs)
+      .values({
+        completedAt: new Date(Date.now() - 2 * 86_400_000),
+        createdBy: actorId,
+        payload: { batchId: "demo" },
+        progress: 100,
+        status: "COMPLETED",
+        type: "IMPORT_PRODUCTS",
+      })
+      .returning();
+
+    const [failedJob] = await db
+      .insert(jobs)
+      .values({
+        createdBy: actorId,
+        errorMessage: "File CSV tidak dapat dibaca. Format kolom tidak sesuai.",
+        failedAt: new Date(Date.now() - 86_400_000),
+        payload: { batchId: "demo-failed" },
+        progress: 0,
+        status: "FAILED",
+        type: "IMPORT_PRODUCTS",
+      })
+      .returning();
+
+    const [reportJob] = await db
+      .insert(jobs)
+      .values({
+        completedAt: new Date(Date.now() - 3 * 3600_000),
+        createdBy: managerId ?? actorId,
+        payload: { reportType: "INVENTORY_SUMMARY" },
+        progress: 100,
+        status: "COMPLETED",
+        type: "GENERATE_INVENTORY_REPORT",
+      })
+      .returning();
+
+    await db.insert(importBatches).values([
+      {
+        completedAt: new Date(Date.now() - 2 * 86_400_000),
+        createdBy: actorId,
+        failedRows: 0,
+        fileName: "import-produk-mei-2026.csv",
+        fileType: "text/csv",
+        status: "COMPLETED",
+        successRows: 20,
+        totalRows: 20,
+      },
+      {
+        completedAt: new Date(Date.now() - 86_400_000),
+        createdBy: actorId,
+        failedRows: 5,
+        fileName: "import-produk-baru-error.csv",
+        fileType: "text/csv",
+        status: "COMPLETED_WITH_ERRORS",
+        successRows: 12,
+        totalRows: 17,
+      },
+    ]);
+
+    await db.insert(reportExports).values([
+      {
+        completedAt: new Date(Date.now() - 3 * 3600_000),
+        fileName: "inventory_summary-1716732400000.pdf",
+        filter: { warehouseId: null },
+        generatedBy: managerId ?? actorId,
+        jobId: reportJob?.id ?? null,
+        status: "COMPLETED",
+        type: "INVENTORY_SUMMARY",
+      },
+      {
+        fileName: "stock_movement-1716732600000.pdf",
+        filter: { dateFrom: "2026-05-01", dateTo: "2026-05-26" },
+        generatedBy: actorId,
+        jobId: null,
+        status: "FAILED",
+        type: "STOCK_MOVEMENT",
+      },
+    ]);
+
+    if (completedTransfer) {
+      const [syncJob] = await db
+        .insert(jobs)
+        .values({
+          completedAt: new Date(Date.now() - 2 * 86_400_000),
+          createdBy: actorId,
+          payload: { transferId: completedTransfer.id },
+          progress: 100,
+          status: "COMPLETED",
+          type: "WAREHOUSE_SYNC",
+        })
+        .returning();
+
+      await db.insert(warehouseSyncLogs).values([
+        {
+          completedAt: new Date(Date.now() - 2 * 86_400_000),
+          destinationWarehouseId: sbyId,
+          jobId: syncJob?.id ?? null,
+          message: "Sinkronisasi transfer TRF-20260524-DEMO01 berhasil. 1 produk disinkronkan.",
+          metadata: { itemCount: 1 },
+          sourceWarehouseId: jktId,
+          status: "COMPLETED",
+          transferId: completedTransfer.id,
+        },
+        {
+          destinationWarehouseId: bdgId,
+          jobId: null,
+          message: "Sinkronisasi gagal: koneksi Redis timeout.",
+          metadata: { error: "ETIMEDOUT" },
+          sourceWarehouseId: jktId,
+          status: "FAILED",
+          transferId: cancelledTransfer?.id ?? null,
         },
       ]);
     }

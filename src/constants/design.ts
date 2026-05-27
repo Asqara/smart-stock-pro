@@ -49,6 +49,23 @@ export const STATUS_TONE_CLASS_NAMES = {
 } as const;
 
 /**
+ * Chart colors aligned with SmartStock Pro operational states.
+ */
+export const CHART_COLORS = {
+  adjustment: "#64748B",
+  danger: "#DC2626",
+  grid: "#E2E8F0",
+  import: "#2563EB",
+  inbound: "#16A34A",
+  neutral: "#64748B",
+  outbound: "#DC2626",
+  primary: "#2563EB",
+  transferIn: "#0891B2",
+  transferOut: "#D97706",
+  warning: "#D97706",
+} as const;
+
+/**
  * Stock status labels shown to users.
  */
 export const STOCK_STATUS_LABELS = {
@@ -90,6 +107,52 @@ export const TRANSFER_STATUS_TONES = {
   draft: "neutral",
   failed: "danger",
   pending: "warning",
+} as const;
+
+/**
+ * Import batch status labels shown to users.
+ */
+export const IMPORT_STATUS_LABELS = {
+  COMPLETED: "Selesai",
+  COMPLETED_WITH_ERRORS: "Selesai dengan Error",
+  FAILED: "Gagal",
+  PROCESSING: "Diproses",
+  ROLLED_BACK: "Di-rollback",
+  UPLOADED: "Diunggah",
+  VALIDATING: "Divalidasi",
+} as const;
+
+/**
+ * Import batch status tone mapping.
+ */
+export const IMPORT_STATUS_TONES = {
+  COMPLETED: "success",
+  COMPLETED_WITH_ERRORS: "warning",
+  FAILED: "danger",
+  PROCESSING: "info",
+  ROLLED_BACK: "neutral",
+  UPLOADED: "neutral",
+  VALIDATING: "info",
+} as const;
+
+/**
+ * Sync status labels shown to users.
+ */
+export const SYNC_STATUS_LABELS = {
+  COMPLETED: "Selesai",
+  FAILED: "Gagal",
+  PENDING: "Menunggu",
+  SYNCING: "Sinkronisasi",
+} as const;
+
+/**
+ * Sync status tone mapping.
+ */
+export const SYNC_STATUS_TONES = {
+  COMPLETED: "success",
+  FAILED: "danger",
+  PENDING: "warning",
+  SYNCING: "info",
 } as const;
 
 /**
@@ -176,7 +239,7 @@ export const SELECT_CLASS_NAMES = {
     "ts-sm flex min-h-10 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-text-default transition-colors hover:bg-muted-surface hover:text-text-strong disabled:pointer-events-none disabled:text-text-disabled",
   optionActive: "bg-muted-surface font-medium text-text-strong",
   panel:
-    "absolute z-40 mt-2 max-h-64 w-full overflow-y-auto rounded-lg border border-border-default bg-elevated-surface p-1 shadow-md",
+    "z-60 overflow-y-auto rounded-lg border border-border-default bg-elevated-surface p-1 shadow-md",
   placeholder: "text-text-disabled",
   trigger:
     "h-10 w-full min-w-0 rounded-md border border-border-default bg-card-surface px-3 text-left text-text-strong shadow-sm outline-none transition-colors hover:bg-muted-surface focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20 disabled:bg-muted-surface disabled:text-text-disabled",
@@ -194,7 +257,7 @@ export const DATE_INPUT_CLASS_NAMES = {
   icon:
     "pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-text-muted",
   panel:
-    "absolute z-40 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-border-default bg-elevated-surface p-3 shadow-md",
+    "z-60 rounded-lg border border-border-default bg-elevated-surface p-3 shadow-md",
   placeholder: "text-text-disabled",
   trigger:
     "h-10 w-full min-w-0 rounded-md border border-border-default bg-card-surface px-3 pr-10 text-left text-text-strong shadow-sm outline-none transition-colors hover:bg-muted-surface focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20 disabled:bg-muted-surface disabled:text-text-disabled",

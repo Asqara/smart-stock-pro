@@ -46,6 +46,41 @@ export type MonitoringCheckJobData = {
 };
 
 /**
+ * Import products job payload.
+ */
+export type ImportProductsJobData = {
+  batchId: string;
+  createdBy: string;
+  jobId: string;
+  tmpPath: string;
+};
+
+/**
+ * Generate report job payload.
+ */
+export type GenerateReportJobData = {
+  createdBy: string;
+  filters: Record<string, unknown>;
+  jobId: string;
+  outputFormat: "CSV" | "PDF";
+  reportExportId: string;
+  reportType: string;
+};
+
+/**
+ * Warehouse sync job payload.
+ */
+export type WarehouseSyncJobData = {
+  destinationWarehouseId: string;
+  itemCount: number;
+  jobId: string;
+  sourceWarehouseId: string;
+  syncLogId: string;
+  transferId: string;
+  transferNumber: string;
+};
+
+/**
  * Queue enqueue result.
  */
 export type QueueEnqueueResult = {
