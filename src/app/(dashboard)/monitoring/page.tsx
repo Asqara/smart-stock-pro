@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Activity, Cpu, HardDrive, RefreshCw, Server } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import {
@@ -121,6 +122,20 @@ type JobRecord = {
   type: string;
 };
 
+const UPTIME_TICK_MS = 1000;
+
+function getUptimeSecondsSnapshot(resource: ResourceMetric | undefined, nowMs: number) {
+  if (!resource) return null;
+
+  const checkedAtMs = new Date(resource.checkedAt).getTime();
+
+  if (Number.isNaN(checkedAtMs)) return resource.uptimeSeconds;
+
+  const elapsedSeconds = Math.max(0, Math.floor((nowMs - checkedAtMs) / 1000));
+
+  return Math.max(0, resource.uptimeSeconds + elapsedSeconds);
+}
+
 function formatPercent(value: number | null | undefined) {
   if (value === null || value === undefined) return "Tidak tersedia";
 
@@ -147,15 +162,23 @@ function formatResponseTime(value: number | null | undefined) {
   return `${value.toLocaleString("id-ID", { maximumFractionDigits: 2 })} ms`;
 }
 
-function formatUptime(seconds: number) {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
+function formatUptime(seconds: number | null | undefined) {
+  if (seconds === null || seconds === undefined) return "Tidak tersedia";
 
-  if (hours > 0) {
-    return `${hours} jam ${minutes} menit`;
-  }
+  const totalSeconds = Math.max(0, Math.floor(seconds));
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const remainingSeconds = totalSeconds % 60;
+  const parts = [] as string[];
 
-  return `${minutes} menit`;
+  if (days > 0) parts.push(`${days} hari`);
+  if (hours > 0 || days > 0) parts.push(`${hours} jam`);
+  if (minutes > 0 || hours > 0 || days > 0) parts.push(`${minutes} menit`);
+
+  parts.push(`${remainingSeconds} detik`);
+
+  return parts.join(" ");
 }
 
 function useHealth() {
@@ -288,6 +311,13 @@ export default function MonitoringPage() {
   const queuesQuery = useQueues();
   const errorsQuery = useRecentErrors(canReadErrors);
   const jobsQuery = useFailedJobs(canReadJobs);
+  const [uptimeNowMs, setUptimeNowMs] = useState(0);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => setUptimeNowMs(Date.now()), UPTIME_TICK_MS);
+
+    return () => clearInterval(intervalId);
+  }, []);
   const runCheck = useMutation({
     mutationFn: async () => {
       const response = await eden.api.v1.monitoring.check.post({
@@ -313,6 +343,7 @@ export default function MonitoringPage() {
   const queues = queuesQuery.data ?? [];
   const errors = errorsQuery.data ?? [];
   const failedJobs = jobsQuery.data ?? [];
+  const uptimeSeconds = getUptimeSecondsSnapshot(resources, uptimeNowMs);
   const healthCards = health.map((metric) => (
     <MonitoringHealthCard
       description="Health check terakhir tersimpan."
@@ -389,7 +420,7 @@ export default function MonitoringPage() {
           <Server className="size-5 text-operational-cyan" />
         </header>
         <strong className="ts-2xl mt-3 block text-text-strong">
-          {formatUptime(resources.uptimeSeconds)}
+          {formatUptime(uptimeSeconds)}
         </strong>
         <p className="ts-xs text-text-muted">Sejak proses server berjalan.</p>
       </Card>

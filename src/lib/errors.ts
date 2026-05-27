@@ -134,6 +134,22 @@ export class CsrfError extends AppError {
 }
 
 /**
+ * Error for rate limit exceeded.
+ */
+export class RateLimitError extends AppError {
+  retryAfterSeconds: number;
+
+  constructor(retryAfterSeconds: number) {
+    super(
+      429,
+      "RATE_LIMITED",
+      `Terlalu banyak percobaan. Coba lagi dalam ${retryAfterSeconds} detik.`,
+    );
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+/**
  * Error for transfer where source and destination warehouse are the same.
  */
 export class TransferSameWarehouseError extends AppError {

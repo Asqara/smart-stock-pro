@@ -53,6 +53,7 @@
     "nodemailer": "8.0.8",
     "pdfmake": "^0.2.20",
     "postgres": "^3.4.5",
+    "rate-limiter-flexible": "11.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.5",

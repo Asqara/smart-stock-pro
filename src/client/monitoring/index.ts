@@ -18,7 +18,6 @@ import { ErrorLogs } from "../error-logs";
 import { Notifications } from "../notifications";
 import { getResponseTimeSeverity, getResponseTimeStatus } from "./rules";
 
-const STARTED_AT = Date.now();
 const RESPONSE_TIME_WINDOW_HOURS = 24;
 const RESPONSE_TIME_RECENT_LIMIT = 50;
 
@@ -67,7 +66,7 @@ function clampPercentage(value: number) {
 }
 
 function getUptimeSeconds() {
-  return Math.floor((Date.now() - STARTED_AT) / 1000);
+  return Math.floor(process.uptime());
 }
 
 async function measure<T>(operation: () => Promise<T>) {

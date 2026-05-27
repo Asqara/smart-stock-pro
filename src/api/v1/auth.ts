@@ -4,6 +4,7 @@ import { Client } from "@/client";
 import { createAuthCookies, createClearAuthCookies } from "@/lib/session";
 import { getRequestContext } from "@/lib/request";
 import { UnauthorizedError } from "@/lib/errors";
+import { RateLimiter } from "@/lib/rateLimiter";
 import { Schema } from "@/zod-schemas";
 
 import { jsonResponse } from "../response";
@@ -16,7 +17,11 @@ export const authController = new Elysia({ prefix: "/v1/auth", detail: { tags: [
   .post(
     "/login",
     async ({ body, request }) => {
-      const result = await Client.Auth.login(body, getRequestContext(request));
+      const requestContext = getRequestContext(request);
+
+      await RateLimiter.consumeAuthLogin(requestContext.ipAddress, body.email);
+
+      const result = await Client.Auth.login(body, requestContext);
 
       return jsonResponse(
         {

@@ -372,6 +372,26 @@ export const SESSION_IDLE_TIMEOUT_SECONDS = 30 * 60;
 export const SESSION_ABSOLUTE_TIMEOUT_SECONDS = 24 * 60 * 60;
 
 /**
+ * Login rate limit attempts per window.
+ */
+export const AUTH_LOGIN_RATE_LIMIT_ATTEMPTS = 10;
+
+/**
+ * Login rate limit window in seconds.
+ */
+export const AUTH_LOGIN_RATE_LIMIT_WINDOW_SECONDS = 5 * 60;
+
+/**
+ * Login rate limit key prefix.
+ */
+export const AUTH_LOGIN_RATE_LIMIT_KEY_PREFIX = "auth-login";
+
+/**
+ * Fallback IP label for missing request IP.
+ */
+export const AUTH_LOGIN_RATE_LIMIT_UNKNOWN_IP = "unknown";
+
+/**
  * CSRF header required on mutation requests after login.
  */
 export const CSRF_HEADER_NAME = "x-csrf-token";
