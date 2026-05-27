@@ -6,7 +6,7 @@ See @CLAUDE.md for rules and constraints. See @DESIGN.md for design system.
 
 ## Requirements
 
-- Node 24.5.0+
+- Node 22.0.0+
 - pnpm 10.30.3+
 - PostgreSQL 16+
 
