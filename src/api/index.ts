@@ -12,6 +12,7 @@ import { errorLogsController } from "./error-logs";
 import { notificationsController } from "./notifications";
 import { errorResponse } from "./response";
 import { v1Controller } from "./v1";
+import { APP_URL } from "@/constants/app";
 
 const responseTimeStartMap = new WeakMap<Request, number>();
 
@@ -78,7 +79,7 @@ export const app = new Elysia({ prefix: "/api" })
           { name: "Audit Logs", description: "Jejak audit sistem" },
           { name: "Monitoring", description: "Kesehatan dan metrik sistem" },
         ],
-        servers: [{ url: "http://localhost:3000" }],
+        servers: [{ url: APP_URL }],
       },
       mapJsonSchema: {
         zod: z.toJSONSchema,

@@ -11,7 +11,7 @@ export const COMPANY_NAME = "PT Maju Bersama Digital";
 /**
  * Public application URL used for metadata.
  */
-export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+export const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
 
 /**
  * Default SEO description for dashboard pages.
